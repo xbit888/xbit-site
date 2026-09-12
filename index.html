@@ -1,0 +1,825 @@
+<title>XBIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=DotGothic16&family=VT323&display=swap">
+<style>
+  :root{
+    --bg:#07070a;--panel:#0d0f15;--panel-2:#11141c;--line:#242a38;--line-soft:#1a1f2b;
+    --text:#dee9fc;--muted:#7c88a5;--dim:#4a5468;
+    --lime:#4fe3d4;--green:#22b7a9;--green-deep:#128a80;--gold:#e8c15a;--alarm:#e0574b;--epic:#b98bff;--blue:#6aa6ff;
+    --px:3px;color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;color:var(--text);font-family:"DotGothic16","Courier New",monospace;font-size:16px;line-height:1.55;
+    -webkit-font-smoothing:none;image-rendering:pixelated;min-height:100vh;
+    background-color:#07070a;background-image:radial-gradient(rgba(140,150,180,.10) 1px, transparent 1.5px);
+    background-size:23px 23px;background-position:-2px -2px}
+  img{max-width:100%}
+  ::selection{background:var(--lime);color:var(--bg)}
+  h1,h2,h3,.display{font-family:"Jersey 10","Courier New",monospace;font-weight:400;letter-spacing:.5px;text-wrap:balance;margin:0}
+  .mono{font-family:"VT323",monospace}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  .frame{position:relative;background:var(--panel);border:var(--px) solid var(--line);box-shadow:0 var(--px) 0 0 #000, 0 calc(var(--px)*2) 0 0 var(--line-soft)}
+  .frame::before{content:"";position:absolute;top:calc(var(--px)*-1 - 2px);left:calc(var(--px)*-1 - 2px);width:8px;height:8px;background:var(--lime);box-shadow:calc(100% + 4px) 0 0 var(--lime)}
+  .frame.gold{border-color:var(--gold)}
+  .frame.gold::before{background:var(--gold);box-shadow:calc(100% + 4px) 0 0 var(--gold)}
+
+  .wrap{max-width:1040px;margin:0 auto;padding:0 18px 64px}
+  header{position:sticky;top:0;z-index:20;background:rgba(7,7,10,.94);border-bottom:var(--px) solid var(--line);backdrop-filter:blur(2px)}
+  .bar{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:9px}
+  .logo .mark{width:36px;height:36px;flex:none;filter:drop-shadow(0 0 5px rgba(79,227,212,.55))}
+  .logo b{font-family:"Jersey 10",monospace;font-size:30px;line-height:1;letter-spacing:2px}
+  .logo b .a{color:var(--lime)}
+  nav{display:flex;gap:2px;margin-left:4px;flex-wrap:wrap}
+  .tab{font-family:"Jersey 10",monospace;font-size:19px;letter-spacing:1px;background:none;border:none;color:var(--muted);padding:4px 9px;text-transform:uppercase}
+  .tab:hover{color:var(--text)}
+  .tab.on{color:var(--bg);background:var(--lime)}
+  .spacer{flex:1 1 20px}
+  .ticker{font-family:"VT323",monospace;font-size:19px;color:var(--muted);border:2px solid var(--line);background:var(--panel-2);padding:4px 12px;white-space:nowrap}
+  .ticker b{color:var(--lime)}
+  .connect{font-family:"Jersey 10",monospace;font-size:20px;letter-spacing:1px;background:var(--green);color:var(--bg);border:none;padding:6px 16px;box-shadow:0 var(--px) 0 0 var(--green-deep)}
+  .connect:hover{filter:brightness(1.08)}.connect:active{transform:translateY(var(--px));box-shadow:none}
+  .connect.on{background:var(--panel-2);color:var(--lime);box-shadow:0 var(--px) 0 0 #000}
+  .netchip{font-family:"VT323",monospace;font-size:17px;letter-spacing:1px;border:2px solid var(--line);background:var(--panel-2);color:var(--muted);padding:5px 10px}
+  .netchip.ok{color:var(--lime);border-color:var(--green-deep)}
+  .netchip.bad{color:var(--alarm);border-color:var(--alarm)}
+
+  .eyebrow{font-family:"VT323",monospace;font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+  .lime{color:var(--lime)}.gold{color:var(--gold)}.alarm{color:var(--alarm)}.muted{color:var(--muted)}
+  section{display:none;padding-top:26px}
+  section.on{display:block}
+
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:30px;align-items:center;padding-top:14px}
+  @media(max-width:820px){.hero{grid-template-columns:1fr;gap:22px}}
+  .hero h1{font-size:62px;line-height:.9}
+  @media(max-width:520px){.hero h1{font-size:42px}}
+  .lead{color:var(--muted);font-size:15px;max-width:52ch;margin:16px 0 20px}
+  .hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+  .hbtn{font-family:"Jersey 10",monospace;font-size:22px;letter-spacing:1px;background:var(--panel-2);color:var(--text);border:2px solid var(--line);padding:12px 20px;text-transform:uppercase}
+  .hbtn.primary{background:var(--green);color:var(--bg);border-color:var(--green);box-shadow:0 var(--px) 0 0 var(--green-deep)}
+  .hbtn.primary:active{transform:translateY(var(--px));box-shadow:none}
+  .hbtn:hover{border-color:var(--lime)}
+  .hero-stats{margin-top:26px}
+  .hs-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+  @media(max-width:520px){.hs-row{grid-template-columns:repeat(2,1fr)}}
+  .hk{font-family:"VT323",monospace;font-size:15px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  .hv{font-family:"Jersey 10",monospace;font-size:26px}
+  .hero-r .frame{border-color:var(--lime)}
+  .card{padding:9px}
+  .card-h{display:flex;justify-content:space-between;font-family:"VT323",monospace;font-size:16px;letter-spacing:2px;text-transform:uppercase;color:var(--lime);padding:4px 6px 8px}
+  .card-art{background:#0a1618;border:2px solid var(--line);aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .card-art svg{width:58%;height:58%;filter:drop-shadow(0 0 12px rgba(79,227,212,.55))}
+  .card-strip{height:10px;margin:8px 0 4px;background:repeating-linear-gradient(90deg,#4fe3d4 0 6px,#e8c15a 6px 12px,#b98bff 12px 18px,#65b24c 18px 24px,#e0574b 24px 30px)}
+  .card-f{display:flex;justify-content:space-between;align-items:baseline;padding:2px 6px 6px;font-family:"Jersey 10",monospace;font-size:28px}
+  .card-f .mono{font-size:22px;color:var(--muted)}
+
+  .farm-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px}
+  @media(max-width:760px){.farm-grid{grid-template-columns:1fr}.bar{gap:10px}}
+  .rig{padding:22px}
+  .rig h2{font-size:44px;line-height:.9;margin:6px 0 2px}
+  .rig .sub{color:var(--muted);font-size:15px;margin-bottom:16px;max-width:50ch}
+  .rig .hero-mascot{position:absolute;top:14px;right:16px;width:70px;height:70px;opacity:.95;filter:drop-shadow(0 0 7px rgba(79,227,212,.5))}
+  @media(max-width:520px){.rig .hero-mascot{display:none}}
+  .readout{display:flex;justify-content:space-between;align-items:flex-end;margin:6px 0 10px}
+  .readout .big{font-family:"Jersey 10",monospace;font-size:52px;line-height:.85;color:var(--lime)}
+  .readout .unit{font-family:"VT323",monospace;font-size:22px;color:var(--muted)}
+  .fieldHud{display:flex;gap:20px;font-family:"VT323",monospace;font-size:19px;color:var(--muted);margin:4px 0 6px}
+  .fieldHud b{color:var(--lime)}
+  .field{position:relative;height:262px;background:var(--panel-2);border:2px solid var(--line);overflow:hidden;margin:0 0 12px}
+  .field.live{border-color:var(--lime)}
+  .field-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:"VT323",monospace;font-size:20px;text-align:center;padding:0 24px}
+  .sprite{position:absolute;width:46px;height:56px;padding:0;border:none;background:none;filter:drop-shadow(0 0 6px rgba(79,227,212,.55));animation:spawnIn .16s ease-out}
+  .sprite.rare{filter:drop-shadow(0 0 8px rgba(79,227,212,.95))}
+  .sprite.epic{filter:drop-shadow(0 0 9px rgba(185,139,255,.95))}
+  .sprite.jackpot{filter:drop-shadow(0 0 12px rgba(232,193,90,1))}
+  .sprite.glitch{filter:drop-shadow(0 0 9px rgba(224,87,75,.95)) hue-rotate(160deg) saturate(1.7)}
+  .sprite.caught{animation:caught .26s ease-out forwards}
+  @keyframes spawnIn{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes caught{to{transform:scale(1.7);opacity:0}}
+  .float{position:absolute;font-family:"Jersey 10",monospace;font-size:24px;pointer-events:none;animation:floatUp .9s ease-out forwards}
+  @keyframes floatUp{0%{opacity:0;transform:translateY(4px)}20%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
+  .claim{width:100%;font-family:"Jersey 10",monospace;font-size:32px;letter-spacing:2px;background:var(--green);color:var(--bg);border:none;padding:13px;box-shadow:0 var(--px) 0 0 var(--green-deep);text-transform:uppercase}
+  .claim:hover:not(:disabled){filter:brightness(1.08)}.claim:active:not(:disabled){transform:translateY(var(--px));box-shadow:none}
+  .claim:disabled{background:var(--panel-2);color:var(--dim);box-shadow:0 var(--px) 0 0 #000}
+  .side{display:flex;flex-direction:column;gap:16px}
+  .stat{padding:16px 18px}
+  .stat .k{font-family:"VT323",monospace;font-size:17px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+  .stat .v{font-family:"Jersey 10",monospace;font-size:34px;margin-top:2px}
+  .odds{padding:16px 18px}
+  .odds .k{font-family:"VT323",monospace;font-size:17px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .odds .row{display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:5px 0;border-top:2px solid var(--line-soft)}
+  .odds .row:first-of-type{border-top:none}
+  .dot{width:11px;height:11px;display:inline-block;margin-right:8px;vertical-align:-1px}
+  .log{padding:14px 18px;font-family:"VT323",monospace;font-size:18px;max-height:150px;overflow:auto}
+  .log .line{color:var(--muted);padding:2px 0}.log .line b{color:var(--text)}
+
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:760px){.cards{grid-template-columns:repeat(2,1fr)}}
+  .live{display:inline-block;width:9px;height:9px;background:var(--alarm);margin-right:6px;vertical-align:1px;animation:blink 1.1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .poolbar{height:16px;background:var(--panel-2);border:2px solid var(--line);position:relative;overflow:hidden;margin-top:8px}
+  .poolbar>i{position:absolute;inset:0;right:auto;background:var(--lime)}
+  .epochs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+  @media(max-width:560px){.epochs{grid-template-columns:repeat(2,1fr)}}
+  .ep{padding:10px;border:2px solid var(--line);background:var(--panel-2);text-align:center}
+  .ep.now{border-color:var(--lime)}.ep.past{opacity:.55}
+  .ep .n{font-family:"Jersey 10",monospace;font-size:22px}
+  .ep .s{font-family:"VT323",monospace;font-size:15px;color:var(--muted)}.ep.now .s{color:var(--lime)}
+  .empty{font-family:"VT323",monospace;font-size:19px;color:var(--dim);padding:16px 4px;text-align:center}
+  .lb .r{display:flex;justify-content:space-between;padding:6px 0;border-top:2px solid var(--line-soft);font-family:"VT323",monospace;font-size:19px}
+  .lb .r.you{color:var(--lime)}.lb .r .rk{color:var(--muted);width:38px;display:inline-block}
+
+  .raf-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+  @media(max-width:760px){.raf-grid{grid-template-columns:1fr}}
+  .pot{padding:26px 22px;text-align:center}
+  .pot .eyebrow{display:block;margin-bottom:6px}
+  .pot .amount{font-family:"Jersey 10",monospace;font-size:78px;line-height:.85;color:var(--gold)}
+  .pot .amount small{font-family:"VT323",monospace;font-size:26px;color:var(--muted)}
+  .ethsub{font-family:"VT323",monospace;font-size:18px;color:var(--muted);margin-top:2px}
+  .rrow{display:flex;justify-content:space-between;font-family:"VT323",monospace;font-size:19px;padding:6px 0;border-top:2px solid var(--line-soft)}
+  .rrow:first-of-type{border-top:none;margin-top:14px}.rrow b{color:var(--text)}
+  .clock{font-family:"Jersey 10",monospace;font-size:44px;color:var(--alarm);letter-spacing:2px;margin:8px 0 4px}
+  .enter{width:100%;font-family:"Jersey 10",monospace;font-size:26px;letter-spacing:2px;background:var(--gold);color:var(--bg);border:none;padding:12px;box-shadow:0 var(--px) 0 0 #a5842f;text-transform:uppercase;margin-top:12px}
+  .enter:active{transform:translateY(var(--px));box-shadow:none}
+  .rstat{display:flex;justify-content:space-between;font-family:"VT323",monospace;font-size:20px;padding:7px 0;border-top:2px solid var(--line-soft)}
+  .rstat:first-child{border-top:none}.rstat b{color:var(--lime)}
+  .players{padding:16px 18px}
+  .players .k{font-family:"VT323",monospace;font-size:17px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .players .p{display:flex;justify-content:space-between;font-family:"VT323",monospace;font-size:19px;padding:4px 0;border-top:2px solid var(--line-soft)}
+  .players .p.you{color:var(--lime)}
+  .winner{padding:14px 18px;margin-top:14px;text-align:center;font-family:"Jersey 10",monospace;font-size:24px}
+  .howto{padding:20px 22px;margin-top:16px}
+  .howto h3{font-size:28px;margin-bottom:10px}
+  .howto ol{margin:0;padding-left:22px;color:var(--muted);font-size:15px}
+  .howto ol li{margin:7px 0}.howto ol li b{color:var(--text)}
+  .howto .fine{font-family:"VT323",monospace;font-size:16px;color:var(--dim);margin-top:12px}
+
+  .prof-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.prof-grid{grid-template-columns:1fr}}
+  .pcard{padding:20px}
+  .addr{font-family:"VT323",monospace;font-size:22px;color:var(--lime);word-break:break-all}
+  .btn-x{font-family:"Jersey 10",monospace;font-size:20px;letter-spacing:1px;background:var(--panel-2);color:var(--text);border:2px solid var(--line);padding:8px 16px;margin-top:12px}
+  .btn-x:hover{border-color:var(--lime)}
+  .epTable .row{display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid var(--line-soft);font-family:"VT323",monospace;font-size:20px}
+  .epTable .row:first-child{border-top:none}.epTable .row .amt{color:var(--lime)}
+  .badge{font-family:"VT323",monospace;font-size:14px;padding:1px 6px;border:1px solid var(--line);color:var(--muted);margin-left:8px}
+  .badge.now{color:var(--lime);border-color:var(--lime)}
+
+  /* ---------- TOKEN page ---------- */
+  .tok-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+  @media(max-width:820px){.tok-grid{grid-template-columns:1fr}}
+  .tok-head{display:flex;align-items:center;gap:16px}
+  .tok-logo{width:74px;height:74px;flex:none;border:3px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0a1618}
+  .tok-logo svg{width:60%;height:60%;filter:drop-shadow(0 0 8px rgba(79,227,212,.5))}
+  .tok-title{font-size:60px;line-height:.9}
+  .tok-desc{color:var(--muted);font-size:15px;max-width:52ch;margin:18px 0}
+  .tok-timerbox{padding:16px 18px;margin:16px 0}
+  .tok-timer{font-family:"Jersey 10",monospace;font-size:52px;color:var(--lime);letter-spacing:2px;line-height:.9;margin:4px 0}
+  .tok-rows{margin-top:6px}
+  .trow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:2px dotted var(--line);font-family:"VT323",monospace;font-size:20px}
+  .trow span{letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-size:17px}
+  .trow b{color:var(--text)}.trow b small{color:var(--muted);font-size:15px}
+  .tok-links{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}
+  @media(max-width:520px){.tok-links{grid-template-columns:repeat(2,1fr)}}
+  .tlink{font-family:"Jersey 10",monospace;font-size:17px;letter-spacing:1px;background:var(--panel-2);color:var(--text);border:2px solid var(--line);padding:12px 6px;text-transform:uppercase}
+  .tlink:hover{border-color:var(--lime)}
+  .swap{padding:0;overflow:hidden}
+  .swap-h{display:flex;justify-content:space-between;background:var(--gold);color:var(--bg);font-family:"Jersey 10",monospace;font-size:20px;letter-spacing:1px;padding:8px 14px}
+  .swap-in{padding:16px}
+  .swap-field{background:var(--panel-2);border:2px solid var(--line);padding:12px 14px;margin-bottom:8px}
+  .sf-k{font-family:"VT323",monospace;font-size:16px;letter-spacing:2px;color:var(--muted)}
+  .sf-row{display:flex;align-items:baseline;justify-content:space-between;margin-top:4px}
+  .sf-in{font-family:"Jersey 10",monospace;font-size:40px;color:var(--text);background:none;border:none;width:70%;padding:0}
+  .sf-in:focus{outline:none}
+  .sf-u{font-family:"VT323",monospace;font-size:22px;color:var(--muted)}
+  .swap-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+  .swap-quick button{font-family:"VT323",monospace;font-size:19px;background:var(--panel-2);color:var(--text);border:2px solid var(--line);padding:6px}
+  .swap-quick button:hover{border-color:var(--lime)}
+  .swap-info{margin:10px 0}
+  .si{display:flex;justify-content:space-between;font-family:"VT323",monospace;font-size:18px;padding:3px 0;color:var(--muted)}
+  .si b{color:var(--text)}
+  .swap-cta{width:100%;font-family:"Jersey 10",monospace;font-size:22px;letter-spacing:1px;background:var(--panel-2);color:var(--dim);border:none;padding:13px;box-shadow:0 var(--px) 0 0 #000;text-transform:uppercase;margin-top:4px}
+
+  /* ---------- DOCS ---------- */
+  .docs-wrap{display:grid;grid-template-columns:230px 1fr;gap:26px}
+  @media(max-width:760px){.docs-wrap{grid-template-columns:1fr}.contents{display:none}}
+  .contents{position:sticky;top:78px;align-self:start}
+  .ct-h{font-family:"VT323",monospace;font-size:18px;letter-spacing:3px;color:var(--muted);margin-bottom:10px}
+  .ct-item{display:flex;gap:10px;padding:7px 10px;font-family:"Jersey 10",monospace;font-size:19px;letter-spacing:1px;text-transform:uppercase;color:var(--text)}
+  .ct-item:hover{background:var(--panel-2)}
+  .ct-item.on{background:var(--lime);color:var(--bg)}
+  .ct-item.on .cn{color:var(--bg)!important}
+  .dsec{scroll-margin-top:82px;padding:4px 0 22px}
+  .dsec .dnum{font-family:"VT323",monospace;font-size:16px;color:var(--muted);letter-spacing:2px}
+  .dsec h3{font-size:30px;color:var(--lime);margin:2px 0 8px}
+  .dsec p{color:var(--muted);font-size:15px;max-width:60ch;margin:0 0 8px}
+  .dsec ul{color:var(--muted);font-size:15px;max-width:60ch;margin:6px 0;padding-left:20px}
+  .dsec ol{color:var(--muted);font-size:15px;max-width:62ch;margin:8px 0;padding-left:20px}
+  .dsec ol li{margin:6px 0}.dsec ol li b{color:var(--text)}
+  .dist{margin:12px 0 4px;max-width:560px}
+  .dist .drow{display:grid;grid-template-columns:150px 46px 1fr 120px;gap:10px;align-items:center;padding:5px 0;font-family:"VT323",monospace;font-size:17px}
+  .dist .lab{color:var(--text)}.dist .pct{color:var(--lime);text-align:right}
+  .dist .bar{height:12px;background:var(--panel-2);border:2px solid var(--line);position:relative;overflow:hidden}
+  .dist .bar>i{position:absolute;top:0;bottom:0;left:0}
+  .dist .amt{color:var(--muted);text-align:right}
+  @media(max-width:560px){.dist .drow{grid-template-columns:1fr 44px 2fr}.dist .amt{display:none}}
+
+  footer{border-top:var(--px) solid var(--line);margin-top:44px;padding:22px 0;color:var(--dim);font-family:"VT323",monospace;font-size:18px;display:flex;gap:16px;align-items:center}
+  footer .fm{width:22px;height:22px;filter:drop-shadow(0 0 4px rgba(79,227,212,.5))}
+  .flash{animation:flash .5s steps(2) 3}
+  @keyframes flash{50%{background:var(--gold);color:var(--bg)}}
+
+  .overlay{position:fixed;inset:0;background:rgba(7,7,10,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
+  .overlay.on{display:flex}
+  .modal{width:376px;max-width:100%;padding:20px}
+  .modal h3{font-size:26px;letter-spacing:2px;margin-bottom:2px}
+  .modal .mh{display:flex;justify-content:space-between;align-items:center}
+  .modal .x{background:none;border:none;color:var(--muted);font-family:"Jersey 10",monospace;font-size:26px}
+  .wallets{display:flex;flex-direction:column;gap:1px;margin-top:12px}
+  .wrow{display:flex;align-items:center;gap:12px;padding:9px 8px;background:none;border:none;text-align:left;width:100%}
+  .wrow:hover{background:var(--panel-2)}
+  .wrow .ic{width:30px;height:30px;flex:none;border:2px solid var(--line)}
+  .wrow .nm{font-family:"Jersey 10",monospace;font-size:22px;letter-spacing:1px;flex:1;color:var(--text)}
+  .wtag{font-family:"VT323",monospace;font-size:16px;letter-spacing:1px}
+  .wtag.qr{color:var(--lime)}.wtag.recent{color:#8fd15a}.wtag.installed{color:var(--gold)}.wtag.phone{color:var(--blue)}.wtag.more{color:var(--muted)}
+  .wrow .chev{font-family:"Jersey 10",monospace;font-size:22px;color:var(--muted);margin-left:2px}
+  .wsep{border-top:2px dotted var(--line);margin:5px 2px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:2px solid var(--lime);color:var(--text);font-family:"VT323",monospace;font-size:19px;padding:8px 16px;z-index:60;opacity:0;transition:opacity .2s}
+  .toast.on{opacity:1}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="xbit-mascot">
+  <rect x="8" y="3" width="1" height="2" fill="#1f8b83"/><rect x="7" y="0" width="3" height="3" fill="#0b1a1c"/><rect x="8" y="1" width="1" height="1" fill="#9ff6ec"/>
+  <rect x="2" y="9" width="2" height="4" fill="#0b1a1c"/><rect x="14" y="9" width="2" height="4" fill="#0b1a1c"/><rect x="2" y="9" width="1" height="4" fill="#3cc6bb"/><rect x="15" y="9" width="1" height="4" fill="#3cc6bb"/>
+  <rect x="3" y="4" width="12" height="9" fill="#0b1a1c"/><rect x="4" y="5" width="10" height="7" fill="#3cc6bb"/><rect x="4" y="5" width="1" height="7" fill="#7fe9df"/><rect x="5" y="4" width="7" height="1" fill="#7fe9df"/>
+  <rect x="5" y="6" width="8" height="5" fill="#0a1618"/><rect x="6" y="7" width="2" height="2" fill="#9ff6ec"/><rect x="10" y="7" width="2" height="2" fill="#9ff6ec"/>
+  <rect x="7" y="9" width="1" height="1" fill="#5fd6cb"/><rect x="8" y="10" width="2" height="1" fill="#5fd6cb"/><rect x="10" y="9" width="1" height="1" fill="#5fd6cb"/>
+  <rect x="4" y="13" width="10" height="7" fill="#0b1a1c"/><rect x="5" y="13" width="8" height="6" fill="#3cc6bb"/><rect x="5" y="13" width="1" height="6" fill="#7fe9df"/>
+  <rect x="2" y="13" width="2" height="5" fill="#0b1a1c"/><rect x="14" y="13" width="2" height="5" fill="#0b1a1c"/><rect x="2" y="13" width="1" height="4" fill="#3cc6bb"/><rect x="14" y="13" width="1" height="4" fill="#3cc6bb"/>
+  <rect x="6" y="14" width="6" height="4" fill="#0e3d3a"/><rect x="8" y="14" width="1" height="1" fill="#e8c15a"/><rect x="7" y="15" width="3" height="1" fill="#e8c15a"/><rect x="8" y="16" width="1" height="1" fill="#e8c15a"/>
+  <rect x="6" y="20" width="2" height="2" fill="#0b1a1c"/><rect x="10" y="20" width="2" height="2" fill="#0b1a1c"/><rect x="6" y="20" width="2" height="1" fill="#3cc6bb"/><rect x="10" y="20" width="2" height="1" fill="#3cc6bb"/>
+</g></defs></svg>
+
+<header>
+  <div class="bar">
+    <div class="logo" onclick="go('home')">
+      <svg class="mark" viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg>
+      <b><span class="a">X</span>BIT</b>
+    </div>
+    <nav>
+      <button class="tab" data-t="farm" onclick="go('farm')">Farm</button>
+      <button class="tab" data-t="raffle" onclick="go('raffle')">Raffle</button>
+      <button class="tab" data-t="token" onclick="go('token')">$XBIT</button>
+      <button class="tab" data-t="stats" onclick="go('stats')">Stats</button>
+      <button class="tab" data-t="profile" onclick="go('profile')">My Profile</button>
+      <button class="tab" data-t="docs" onclick="go('docs')">Docs</button>
+    </nav>
+    <div class="spacer"></div>
+    <div class="ticker mono" id="ticker">EPOCH 1/5 · 12:00:00 left</div>
+    <button class="netchip" id="netChip" hidden onclick="switchNet()"></button>
+    <button class="connect" id="connectBtn" onclick="onConnectClick()">CONNECT</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section id="home" class="on">
+    <div class="hero">
+      <div class="hero-l">
+        <h1>YOU DON'T BUY <span class="lime">XBIT</span>.<br>YOU <span class="lime">FARM</span> IT.</h1>
+        <p class="lead">XBIT can't be bought ready-made. Connect a wallet, catch XBIT mascots on the farm field, and stack tokens. Five 12-hour epochs, drops from a fixed 200M pool, and a final 1 ETH raffle for farmers.</p>
+        <div class="hero-btns">
+          <button class="hbtn primary" onclick="go('farm')">▸ START FARMING</button>
+          <button class="hbtn" onclick="go('docs')">HOW IT WORKS</button>
+        </div>
+        <div class="hero-stats">
+          <div class="eyebrow">farmed from pool · 200,000,000 $XBIT</div>
+          <div class="poolbar"><i id="homePool" style="width:0%"></i></div>
+          <div class="hs-row">
+            <div><div class="hk">left in pool</div><div class="hv lime tnum" id="homeLeft">200,000,000</div></div>
+            <div><div class="hk">farming now</div><div class="hv tnum" id="homeActive">0</div></div>
+            <div><div class="hk">epoch</div><div class="hv" id="homeEpoch">1/5</div></div>
+            <div><div class="hk">raffle prize</div><div class="hv gold">1 ETH</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-r">
+        <div class="frame card">
+          <div class="card-h"><span>GRAND PRIZE</span><span id="cardEpoch">EPOCH 1/5</span></div>
+          <div class="card-art"><svg viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg></div>
+          <div class="card-strip"></div>
+          <div class="card-f"><span class="gold">1 ETH</span><span class="mono" id="cardCd">--:--:--</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="farm">
+    <div class="farm-grid">
+      <div class="frame rig">
+        <svg class="hero-mascot" viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg>
+        <div class="eyebrow" id="rigEyebrow">// farm rig · epoch 1/5</div>
+        <h2>CATCH THE <span class="lime">DROP</span></h2>
+        <p class="sub">Hit START — XBIT mascots pop up at random spots on the field. Click to catch them before they vanish. Don't touch the red glitches — they cost you.</p>
+        <div class="readout">
+          <div><div class="eyebrow">your balance</div><div class="big tnum" id="bal">0</div></div>
+          <div class="unit">$XBIT</div>
+        </div>
+        <div class="fieldHud"><span>cycle <b id="cyTime">—</b></span><span>caught <b id="cyCaught">0</b></span><span>+<b id="cyEarn">0</b> $XBIT</span></div>
+        <div class="field" id="field"><div class="field-msg" id="fieldMsg">Hit START FARM and catch the XBIT mascots</div></div>
+        <button class="claim" id="startBtn" onclick="startCycle()">START FARM</button>
+      </div>
+      <div class="side">
+        <div class="frame stat"><div class="k">$XBIT per mascot</div><div class="v"><span class="lime">10 – 3000</span></div></div>
+        <div class="frame odds">
+          <div class="k">drop table</div>
+          <div class="row"><span><i class="dot" style="background:var(--muted)"></i>Common</span><span class="mono">60%</span></div>
+          <div class="row"><span><i class="dot" style="background:var(--lime)"></i>Rare</span><span class="mono">30%</span></div>
+          <div class="row"><span><i class="dot" style="background:var(--epic)"></i>Epic</span><span class="mono">9%</span></div>
+          <div class="row"><span><i class="dot" style="background:var(--gold)"></i>Jackpot</span><span class="mono">1%</span></div>
+          <div class="row"><span><i class="dot" style="background:var(--alarm)"></i>Glitch — don't touch</span><span class="mono">−</span></div>
+        </div>
+        <div class="frame log" id="log"><div class="line">rig online. connect a wallet to farm…</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="raffle">
+    <div class="eyebrow" style="margin-bottom:14px">// grand raffle · one draw after TGE</div>
+    <div class="raf-grid">
+      <div class="frame gold pot">
+        <span class="eyebrow">grand prize</span>
+        <div class="amount tnum">1 <small>ETH</small></div>
+        <div class="ethsub">one random winner takes it all</div>
+        <div class="rrow"><span>ticket price</span><b>18,888 $XBIT</b></div>
+        <div class="rrow"><span>max per account</span><b>100 tickets</b></div>
+        <div class="eyebrow" style="margin-top:16px">draw in · after TGE</div>
+        <div class="clock tnum" id="clock">--:--:--</div>
+        <button class="enter" onclick="buyTicket()">BUY TICKET · 18,888 $XBIT</button>
+        <div class="eyebrow" style="margin-top:10px">your tickets: <span class="lime" id="myTickets">0</span>/100 · chance <span class="lime" id="chance">0%</span></div>
+      </div>
+      <div>
+        <div class="frame" style="padding:16px 18px">
+          <div class="rstat"><span>total tickets</span><b id="totTickets">0</b></div>
+          <div class="rstat"><span>players</span><b id="pcount">0</b></div>
+          <div class="rstat"><span>$XBIT in pot</span><b id="collected">0</b></div>
+        </div>
+        <div class="frame players" style="margin-top:16px"><div class="k">players</div><div id="playerList"></div></div>
+        <div class="frame winner" id="winner" hidden></div>
+      </div>
+    </div>
+    <div class="frame howto">
+      <h3>How the <span class="gold">raffle</span> works</h3>
+      <ol>
+        <li><b>Buy tickets with $XBIT.</b> One ticket is 18,888 $XBIT, up to 100 tickets per account.</li>
+        <li><b>All tickets go into one pool.</b> Your chance = your tickets ÷ all tickets.</li>
+        <li><b>One draw only</b> — after TGE and all 5 epochs are done.</li>
+        <li><b>Winner by provable randomness (Chainlink VRF).</b> One wallet takes <b class="gold">1 ETH</b> from the prize wallet.</li>
+        <li><b>Spent $XBIT leaves circulation</b> into the treasury — it buys tokens back and adds demand.</li>
+      </ol>
+      <div class="fine">Prize is fixed at 1 ETH. The draw runs on-chain and anyone can verify the result.</div>
+    </div>
+  </section>
+
+  <section id="token">
+    <div class="tok-grid">
+      <div class="tok-l">
+        <div class="tok-head">
+          <div class="tok-logo"><svg viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg></div>
+          <div><h1 class="tok-title"><span class="lime">$</span>XBIT</h1><div class="eyebrow">XBIT token · ERC-20</div></div>
+        </div>
+        <p class="tok-desc">XBIT is the currency you farm, not buy. Catch mascots, stack $XBIT across five epochs, then it goes live at TGE. A one-time burn event trims supply and a 1 ETH raffle runs for holders.</p>
+        <div class="frame tok-timerbox">
+          <div class="eyebrow">trading opens in</div>
+          <div class="tok-timer tnum" id="tokTimer">--:--:--</div>
+          <div class="eyebrow" id="tokTimerSub">after all 5 epochs · TGE</div>
+        </div>
+        <div class="tok-rows">
+          <div class="trow"><span>total supply</span><b class="gold tnum">1,000,000,000 <small>$XBIT</small></b></div>
+          <div class="trow"><span>farm pool</span><b class="tnum">200,000,000 <small>$XBIT</small></b></div>
+          <div class="trow"><span>network</span><b>Robinhood Chain</b></div>
+          <div class="trow"><span>contract</span><b>TBA at launch</b></div>
+          <div class="trow"><span>burn</span><b>0.125% / 30m · 12h event</b></div>
+        </div>
+        <div class="tok-links">
+          <button class="tlink" onclick="tokLink('DEX Screener')">DEX Screener</button>
+          <button class="tlink" onclick="tokLink('Uniswap')">Uniswap</button>
+          <button class="tlink" onclick="tokLink('GeckoTerminal')">GeckoTerminal</button>
+          <button class="tlink" onclick="tokLink('Explorer')">Scan</button>
+        </div>
+      </div>
+      <div class="tok-r">
+        <div class="frame gold swap">
+          <div class="swap-h"><span>$XBIT / ETH</span><span id="swapEpoch">EPOCH 1/5</span></div>
+          <div class="swap-in">
+            <div class="swap-field"><div class="sf-k">you pay</div><div class="sf-row"><input id="payIn" class="sf-in tnum" inputmode="decimal" value="0.1" oninput="calcSwap()"><span class="sf-u">ETH</span></div></div>
+            <div class="swap-field"><div class="sf-k">you receive</div><div class="sf-row"><div class="sf-in tnum" id="recOut">—</div><span class="sf-u">$XBIT</span></div></div>
+            <div class="swap-quick"><button onclick="setPay(0.01)">0.01</button><button onclick="setPay(0.1)">0.1</button><button onclick="setPay(1)">1</button><button onclick="setPay(5)">5</button></div>
+            <div class="swap-info">
+              <div class="si"><span>rate</span><b id="siRate">—</b></div>
+              <div class="si"><span>fee 2.50%</span><b id="siFee">—</b></div>
+              <div class="si"><span>max slippage</span><b>0.50% auto</b></div>
+              <div class="si"><span>minimum received</span><b id="siMin">—</b></div>
+            </div>
+            <button class="swap-cta" disabled>TRADING OPENS AFTER TGE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="stats">
+    <div class="eyebrow" style="margin-bottom:14px">// network · real-time · real users only</div>
+    <div class="cards">
+      <div class="frame stat"><div class="k">$XBIT left in pool</div><div class="v lime tnum" id="s-left">200,000,000</div></div>
+      <div class="frame stat"><div class="k">farmed today</div><div class="v tnum" id="s-today">0</div></div>
+      <div class="frame stat"><div class="k"><span class="live"></span>farming now</div><div class="v tnum" id="s-active">0</div></div>
+      <div class="frame stat"><div class="k">total farmers</div><div class="v tnum" id="s-farmers">0</div></div>
+    </div>
+    <div class="frame" style="margin-top:16px;padding:18px">
+      <div class="eyebrow">farm pool · 200,000,000 $XBIT</div>
+      <div class="poolbar"><i id="poolFill" style="width:0%"></i></div>
+      <div class="eyebrow" style="margin-top:14px">epochs · 5 × 12h</div>
+      <div class="epochs" id="epochs"></div>
+    </div>
+    <div class="frame lb" style="margin-top:16px;padding:18px">
+      <div class="eyebrow" style="margin-bottom:6px">leaderboard · 1000 $XBIT threshold</div>
+      <div id="board"></div>
+    </div>
+  </section>
+
+  <section id="profile">
+    <div class="eyebrow" style="margin-bottom:14px">// my profile</div>
+    <div id="profileBody"></div>
+  </section>
+
+  <section id="docs">
+    <div class="docs-wrap">
+      <aside class="contents"><div class="ct-h">CONTENTS</div><div id="ctList"></div></aside>
+      <div class="docs-body">
+        <div class="dsec" id="d0"><div class="dnum">00</div><h3>OVERVIEW</h3>
+          <p>XBIT is a currency you can't buy ready-made — you only farm it. Connect an EVM wallet, catch XBIT mascots on the farm field, and stack tokens. The only thing on-chain is the $XBIT token itself; the mascot pictures are cosmetic.</p></div>
+        <div class="dsec" id="d1"><div class="dnum">01</div><h3>FARM</h3>
+          <p>Hit START — XBIT mascots appear at random spots on the field. Catch them by clicking before they vanish; the more you catch, the more $XBIT you earn. Red glitches must not be clicked — they cost you. Active catching instead of an auto-claim keeps bots out.</p></div>
+        <div class="dsec" id="d2"><div class="dnum">02</div><h3>EPOCHS</h3>
+          <p>Five 12-hour epochs (60h of farming). Drops come from a fixed pool of 200,000,000 $XBIT, distributed pro-rata by how much you farmed. Your profile shows what you caught in each epoch.</p></div>
+        <div class="dsec" id="d3"><div class="dnum">03</div><h3>DISTRIBUTION</h3>
+          <p>Total supply is 1,000,000,000 $XBIT. Here is where every token goes:</p>
+          <div class="dist">
+            <div class="drow"><span class="lab">Farm rewards</span><span class="pct">20%</span><span class="bar"><i style="width:50%;background:var(--lime)"></i></span><span class="amt tnum">200,000,000</span></div>
+            <div class="drow"><span class="lab">Liquidity (locked)</span><span class="pct">40%</span><span class="bar"><i style="width:100%;background:var(--blue)"></i></span><span class="amt tnum">400,000,000</span></div>
+            <div class="drow"><span class="lab">Treasury</span><span class="pct">15%</span><span class="bar"><i style="width:37%;background:var(--epic)"></i></span><span class="amt tnum">150,000,000</span></div>
+            <div class="drow"><span class="lab">Devs &amp; marketing</span><span class="pct">12.5%</span><span class="bar"><i style="width:31%;background:var(--gold)"></i></span><span class="amt tnum">125,000,000</span></div>
+            <div class="drow"><span class="lab">Team</span><span class="pct">12.5%</span><span class="bar"><i style="width:31%;background:var(--lime)"></i></span><span class="amt tnum">125,000,000</span></div>
+          </div>
+          <p style="margin-top:10px"><b class="gold">Raffle prize is 1 ETH</b>, funded from the team wallet — not from token supply.</p>
+          <p>No airdrop. The only $XBIT that reaches users is what they farm — up to 200,000,000.</p>
+          <p style="margin-top:14px"><b class="lime">How it all happens:</b></p>
+          <ol>
+            <li><b>Farm.</b> Five 12-hour epochs. Catch mascots and stack $XBIT into your farmed balance.</li>
+            <li><b>Snapshot.</b> When the epochs end, farmed balances are snapshotted and sybil wallets are filtered out.</li>
+            <li><b>TGE.</b> $XBIT deploys on Robinhood Chain, the liquidity pool opens, and trading goes live.</li>
+            <li><b>Claim.</b> Your farmed $XBIT unlocks on a drip — 10% every 15 minutes (~2.5h to full) so nobody dumps at once.</li>
+            <li><b>Raffle.</b> Spend $XBIT on tickets; one wallet wins 1 ETH after TGE.</li>
+            <li><b>Burn.</b> A one-time event burns 0.125% every 30 min for 12h (~3% of supply), tightening the token.</li>
+          </ol></div>
+        <div class="dsec" id="d4"><div class="dnum">04</div><h3>STATS</h3>
+          <p>Everything is real — real users only, no fake names. You can see how much $XBIT is left in the pool, how much was farmed today, and how many people are farming right now. Farm ≥ 1000 $XBIT to make the leaderboard.</p></div>
+        <div class="dsec" id="d5"><div class="dnum">05</div><h3>RAFFLE</h3>
+          <p>A ticket is 18,888 $XBIT, up to 100 per account. After TGE one random player takes 1 ETH (provable randomness, Chainlink VRF). Spent $XBIT goes to the treasury.</p></div>
+        <div class="dsec" id="d6"><div class="dnum">06</div><h3>$XBIT</h3>
+          <p>Token on Robinhood Chain (chain ID 4663), supply 1,000,000,000. Five epochs of farming → snapshot → claim with a drip (10% every 15 min). A one-time burn event trims supply.</p></div>
+        <div class="dsec" id="d7"><div class="dnum">07</div><h3>SECURITY</h3>
+          <p>Connecting a wallet is a message signature, not a transaction — it cannot move funds. The site never asks for your seed phrase. Every action is approved by you in your own wallet and only touches audited contracts. Draining is impossible by design.</p></div>
+        <div class="dsec" id="d8"><div class="dnum">08</div><h3>ANTI-FARM</h3>
+          <p>Against multi-wallet farms we stack:</p>
+          <ul><li>wallet sign-in (SIWE) + captcha;</li><li>a gate: non-empty wallet (balance / history / age);</li><li>device fingerprint and IP filtering;</li><li>farm = a share of a fixed pool (nothing above 200M can be drained);</li><li>a sybil snapshot filter before tokens are handed out.</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <svg class="fm" viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg>
+    <span>XBIT · $XBIT on Robinhood Chain</span>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="frame modal">
+    <div class="mh"><h3>CONNECT A WALLET</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="wallets" id="wallets"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  function go(t){
+    document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+    if(t==='stats')renderStats(); if(t==='profile')renderProfile(); if(t==='raffle')renderRaffle(); if(t==='home')renderHome(); if(t==='token')renderToken();
+    window.scrollTo({top:0});
+  }
+  function fmt(n){return Math.round(n).toLocaleString('en-US');}
+  let toastTimer;
+  function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),2600);}
+
+  const EPOCHS=5, EPOCH_MS=12*3600*1000, START=Date.now();
+  function epochInfo(){
+    const elapsed=Date.now()-START;const ended=elapsed>=EPOCHS*EPOCH_MS;
+    let idx=Math.floor(elapsed/EPOCH_MS); if(idx>EPOCHS-1)idx=EPOCHS-1;
+    return {idx,num:idx+1,leftMs:EPOCH_MS-(elapsed-idx*EPOCH_MS),ended,totalLeft:EPOCHS*EPOCH_MS-elapsed};
+  }
+  function hms(ms){const s=Math.max(0,Math.floor(ms/1000));
+    const h=String(Math.floor(s/3600)).padStart(2,'0'),m=String(Math.floor(s%3600/60)).padStart(2,'0'),ss=String(s%60).padStart(2,'0');return `${h}:${m}:${ss}`;}
+
+  const FARM_POOL=200000000, TICKET_PRICE=18888, MAX_TICKETS=100, XBIT_PER_ETH=5000000;
+  let bal=0, farmedToday=0; const perEpoch=[0,0,0,0,0]; let lastClaimAt=0;
+  function activeNow(){ return (account && (Date.now()-lastClaimAt)<120000) ? 1 : 0; }
+  function totalFarmers(){ return (account && bal>0) ? 1 : 0; }
+  function leaderboard(){ return (bal>=1000 && account) ? [{addr:account,amt:bal,you:true}] : []; }
+
+  const WALLETS=[{id:'walletconnect',name:'WalletConnect'},{id:'rabby',name:'Rabby Wallet'},{id:'phantom',name:'Phantom'},
+    {id:'robinhood',name:'Robinhood Wallet'},{id:'metamask',name:'MetaMask'},{id:'coinbase',name:'Coinbase Wallet'},{id:'okx',name:'OKX Wallet'}];
+  function icon(id){
+    const S=(bg,inner)=>`<svg class="ic" viewBox="0 0 24 24" shape-rendering="crispEdges"><rect width="24" height="24" fill="${bg}"/>${inner}</svg>`;
+    switch(id){
+      case 'walletconnect': return S('#3b99fc','<g fill="#fff"><rect x="6" y="12" width="12" height="2"/><rect x="6" y="10" width="3" height="2"/><rect x="15" y="10" width="3" height="2"/></g>');
+      case 'rabby': return S('#8697ff','<g fill="#fff"><rect x="7" y="10" width="10" height="7"/><rect x="8" y="6" width="2" height="4"/><rect x="14" y="6" width="2" height="4"/></g><rect x="13" y="12" width="3" height="2" fill="#8697ff"/>');
+      case 'phantom': return S('#ab9ff2','<g fill="#fff"><rect x="7" y="8" width="10" height="9"/><rect x="8" y="6" width="8" height="2"/></g><rect x="9" y="10" width="2" height="3" fill="#ab9ff2"/><rect x="14" y="10" width="2" height="3" fill="#ab9ff2"/>');
+      case 'robinhood': return S('#c3f53c','<g fill="#0e3d17"><rect x="12" y="5" width="2" height="14"/><polygon points="12,7 8,11 12,11"/><polygon points="12,11 8,15 12,15"/></g>');
+      case 'metamask': return S('#e2761b','<g fill="#fff"><polygon points="5,6 9,6 8,10"/><polygon points="19,6 15,6 16,10"/><polygon points="6,7 18,7 12,17"/></g>');
+      case 'coinbase': return S('#0052ff','<circle cx="12" cy="12" r="7" fill="#fff"/><rect x="9" y="9" width="6" height="6" fill="#0052ff"/>');
+      case 'okx': return S('#111','<g fill="#fff"><rect x="4" y="4" width="5" height="5"/><rect x="15" y="4" width="5" height="5"/><rect x="9.5" y="9.5" width="5" height="5"/><rect x="4" y="15" width="5" height="5"/><rect x="15" y="15" width="5" height="5"/></g>');
+      case 'all': return S('#11141c','<g fill="none" stroke="#7c88a5" stroke-width="2"><circle cx="10" cy="10" r="4"/><line x1="13" y1="13" x2="17" y2="17"/></g>');
+      default: return S('#333','');
+    }
+  }
+  let account=null, activeProvider=null, xHandle=null;
+  const RH={id:4663,hex:'0x'+(4663).toString(16),name:'Robinhood Chain',
+    rpc:['https://rpc.mainnet.chain.robinhood.com'],cur:{name:'Ether',symbol:'ETH',decimals:18},
+    exp:['https://robinhoodchain.blockscout.com']};
+  async function ensureRobinhood(p){
+    try{ await p.request({method:'wallet_switchEthereumChain',params:[{chainId:RH.hex}]}); toast('Switched to Robinhood Chain'); return true; }
+    catch(e){
+      const code=e&&(e.code||(e.data&&e.data.originalError&&e.data.originalError.code));
+      if(code===4902){
+        try{ await p.request({method:'wallet_addEthereumChain',params:[{chainId:RH.hex,chainName:RH.name,rpcUrls:RH.rpc,nativeCurrency:RH.cur,blockExplorerUrls:RH.exp}]});
+          toast('Robinhood Chain added'); return true; }
+        catch(e2){ toast('Network add declined'); return false; }
+      }
+      toast('Switch to Robinhood Chain to continue'); return false;
+    }
+  }
+  async function refreshNet(){
+    const chip=document.getElementById('netChip');
+    if(!account||!activeProvider){chip.hidden=true;return;}
+    let cid=null; try{cid=await activeProvider.request({method:'eth_chainId'});}catch(e){}
+    chip.hidden=false;
+    if(cid && parseInt(cid,16)===RH.id){chip.className='netchip ok';chip.textContent='◉ Robinhood Chain';}
+    else{chip.className='netchip bad';chip.textContent='⚠ Wrong network · switch';}
+  }
+  async function switchNet(){ if(activeProvider){await ensureRobinhood(activeProvider);await refreshNet();} }
+  function nameOf(id){return (WALLETS.find(w=>w.id===id)||{}).name||id;}
+  function injectedList(){const e=window.ethereum;if(e&&e.providers&&e.providers.length)return e.providers;return e?[e]:[];}
+  function findProvider(id){
+    const list=injectedList();
+    switch(id){
+      case 'metamask': return list.find(p=>p.isMetaMask&&!p.isRabby&&!p.isPhantom)||null;
+      case 'phantom': return (window.phantom&&window.phantom.ethereum)||list.find(p=>p.isPhantom)||null;
+      case 'rabby': return list.find(p=>p.isRabby)||null;
+      case 'okx': return window.okxwallet||list.find(p=>p.isOkxWallet||p.isOKExWallet)||null;
+      case 'coinbase': return window.coinbaseWalletExtension||list.find(p=>p.isCoinbaseWallet)||null;
+      default: return null;
+    }
+  }
+  function renderWallets(){
+    const box=document.getElementById('wallets');box.innerHTML='';
+    let last=null; try{last=localStorage.getItem('xbit:lastWallet');}catch(e){}
+    const order=['walletconnect','__sep','rabby','phantom','robinhood','metamask','coinbase','okx','__sep','__all'];
+    order.forEach(id=>{
+      if(id==='__sep'){const s=document.createElement('div');s.className='wsep';box.appendChild(s);return;}
+      const r=document.createElement('button');r.className='wrow';
+      if(id==='__all'){r.innerHTML=icon('all')+`<span class="nm">All wallets</span><span class="wtag more">30+</span><span class="chev">›</span>`;
+        r.onclick=()=>toast('Full wallet list — in the real build');box.appendChild(r);return;}
+      const w=WALLETS.find(x=>x.id===id);let tag='';
+      if(id==='walletconnect')tag='<span class="wtag qr">QR CODE</span>';
+      else if(id==='robinhood')tag='<span class="wtag phone">PHONE</span>';
+      else if(findProvider(id))tag=(last===id)?'<span class="wtag recent">RECENT</span>':'<span class="wtag installed">INSTALLED</span>';
+      r.innerHTML=icon(id)+`<span class="nm">${w.name}</span>${tag}<span class="chev">›</span>`;
+      r.onclick=()=>connect(id);box.appendChild(r);
+    });
+  }
+  function openModal(){renderWallets();document.getElementById('overlay').classList.add('on');}
+  function closeModal(){document.getElementById('overlay').classList.remove('on');}
+  function short(a){return a.slice(0,6)+'…'+a.slice(-4);}
+  async function connect(id){
+    if(id==='walletconnect'){toast('WalletConnect (QR) coming in the real build');return;}
+    if(id==='robinhood'){toast('Robinhood Wallet is mobile — QR in the real build');return;}
+    const p=findProvider(id);
+    if(!p){toast(nameOf(id)+' not found — install the extension');return;}
+    try{
+      const accts=await p.request({method:'eth_requestAccounts'});
+      account=accts[0];activeProvider=p; try{localStorage.setItem('xbit:lastWallet',id);}catch(e){}
+      const btn=document.getElementById('connectBtn');btn.textContent=short(account);btn.classList.add('on');
+      closeModal();toast('Connected: '+nameOf(id));
+      document.querySelector('#log .line').innerHTML='<b class="lime">wallet connected</b> · '+short(account);
+      renderStats();renderProfile();renderRaffle();renderHome();
+      await ensureRobinhood(p); await refreshNet();
+      p.on&&p.on('accountsChanged',(a)=>{if(!a.length){disconnect();}else{account=a[0];btn.textContent=short(account);renderStats();renderProfile();renderRaffle();renderHome();refreshNet();}});
+      p.on&&p.on('chainChanged',()=>refreshNet());
+    }catch(e){toast('Declined in wallet');}
+  }
+  function disconnect(){account=null;activeProvider=null;xHandle=null;
+    const btn=document.getElementById('connectBtn');btn.textContent='CONNECT';btn.classList.remove('on');
+    document.getElementById('netChip').hidden=true;
+    toast('Wallet disconnected');renderStats();renderProfile();renderRaffle();renderHome();}
+  function onConnectClick(){ if(account){disconnect();} else {openModal();} }
+
+  const TIERS=[{p:.60,name:'COMMON',c:'var(--muted)',lo:10,hi:80,cls:''},{p:.30,name:'RARE',c:'var(--lime)',lo:80,hi:300,cls:'rare'},
+    {p:.09,name:'EPIC',c:'var(--epic)',lo:300,hi:900,cls:'epic'},{p:.01,name:'JACKPOT',c:'var(--gold)',lo:1500,hi:3000,cls:'jackpot'}];
+  function roll(){let r=Math.random(),a=0;for(const t of TIERS){a+=t.p;if(r<=a)return t;}return TIERS[0];}
+  const logEl=document.getElementById('log');
+  function logLine(html){const d=document.createElement('div');d.className='line';d.innerHTML=html;logEl.prepend(d);while(logEl.children.length>18)logEl.lastChild.remove();}
+
+  const CYCLE_SEC=15, GLITCH_P=0.14;
+  let farmActive=false, cyEarn=0, cyCaught=0, cyLeft=0, cyTimer=null, spawnTO=null, sprites=[];
+  const field=document.getElementById('field'), startBtn=document.getElementById('startBtn'), fieldMsg=document.getElementById('fieldMsg');
+  function hud(){document.getElementById('cyTime').textContent=farmActive?cyLeft+'s':'—';document.getElementById('cyCaught').textContent=cyCaught;document.getElementById('cyEarn').textContent=fmt(cyEarn);}
+  function clearField(){sprites.forEach(s=>{clearTimeout(s.to);s.el.remove();});sprites=[];}
+  function startCycle(){
+    if(!account){toast('Connect a wallet first');openModal();return;}
+    const ep=epochInfo(); if(ep.ended){toast('Farming finished — all 5 epochs done');return;}
+    if(farmActive)return;
+    farmActive=true;cyEarn=0;cyCaught=0;cyLeft=CYCLE_SEC;clearField();
+    fieldMsg.hidden=true;field.classList.add('live');
+    startBtn.disabled=true;startBtn.textContent='FARMING…';hud();
+    scheduleSpawn();
+    cyTimer=setInterval(()=>{cyLeft--;hud();if(cyLeft<=0)endCycle();},1000);
+  }
+  function scheduleSpawn(){ if(!farmActive)return; spawnSprite(); spawnTO=setTimeout(scheduleSpawn, 480+Math.random()*680); }
+  function floatText(x,y,txt,color){const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=x+'px';f.style.top=y+'px';f.style.color=color;field.appendChild(f);setTimeout(()=>f.remove(),900);}
+  function spawnSprite(){
+    const glitch=Math.random()<GLITCH_P; const t=glitch?null:roll();
+    const W=46,H=56, fw=field.clientWidth||600, fh=field.clientHeight||262;
+    const x=Math.floor(Math.random()*Math.max(1,fw-W)), y=Math.floor(Math.random()*Math.max(1,fh-H));
+    const el=document.createElement('button');el.className='sprite '+(glitch?'glitch':(t.cls||''));
+    el.style.left=x+'px';el.style.top=y+'px';
+    el.innerHTML='<svg viewBox="0 0 18 22" width="46" height="56" shape-rendering="crispEdges"><use href="#xbit-mascot"/></svg>';
+    const rec={el}; const life=1000+Math.random()*600;
+    rec.to=setTimeout(()=>{el.remove();sprites=sprites.filter(s=>s!==rec);}, life);
+    el.onclick=()=>{
+      clearTimeout(rec.to);sprites=sprites.filter(s=>s!==rec);
+      el.classList.add('caught');setTimeout(()=>el.remove(),260);
+      if(glitch){const pen=60+Math.floor(Math.random()*140);cyEarn=Math.max(0,cyEarn-pen);
+        floatText(x,y,'-'+pen,'var(--alarm)');logLine('<b class="alarm">GLITCH</b> · -'+pen+' $XBIT');}
+      else{const amt=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));cyEarn+=amt;cyCaught++;
+        floatText(x,y,'+'+fmt(amt),t.c);logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(amt)} $XBIT`);}
+      hud();
+    };
+    field.appendChild(el);sprites.push(rec);
+  }
+  function endCycle(){
+    farmActive=false;clearInterval(cyTimer);clearTimeout(spawnTO);clearField();
+    field.classList.remove('live');fieldMsg.hidden=false;
+    const ep=epochInfo();
+    bal+=cyEarn;farmedToday+=cyEarn;perEpoch[ep.idx]+=cyEarn;lastClaimAt=Date.now();
+    document.getElementById('bal').textContent=fmt(bal);
+    fieldMsg.innerHTML=`Cycle done · caught ${cyCaught} · <span class="lime">+${fmt(cyEarn)} $XBIT</span>`;
+    startBtn.disabled=false;startBtn.textContent='NEXT CYCLE ▸';hud();
+    renderStats();renderProfile();renderRaffle();renderHome();
+  }
+
+  function renderHome(){
+    const ft=bal,ep=epochInfo();
+    document.getElementById('homeLeft').textContent=fmt(FARM_POOL-ft);
+    document.getElementById('homeActive').textContent=activeNow();
+    document.getElementById('homeEpoch').textContent=ep.num+'/5';
+    document.getElementById('homePool').style.width=Math.min(100,100*ft/FARM_POOL)+'%';
+    document.getElementById('cardEpoch').textContent='EPOCH '+ep.num+'/5';
+    document.getElementById('cardCd').textContent=ep.totalLeft>0?hms(ep.totalLeft):'TGE';
+  }
+  function calcSwap(){
+    const pay=parseFloat(document.getElementById('payIn').value)||0;
+    const rec=pay*XBIT_PER_ETH;
+    document.getElementById('recOut').textContent = rec?fmt(rec):'—';
+    document.getElementById('siRate').textContent = '1 $XBIT = '+(1/XBIT_PER_ETH).toFixed(8)+' ETH';
+    document.getElementById('siFee').textContent = (pay*0.025).toFixed(4)+' ETH';
+    document.getElementById('siMin').textContent = rec?fmt(rec*0.995)+' $XBIT':'—';
+  }
+  function setPay(v){document.getElementById('payIn').value=v;calcSwap();}
+  function tokLink(name){toast(name+' link goes live at TGE');}
+  function renderToken(){
+    const ep=epochInfo();
+    document.getElementById('tokTimer').textContent=ep.totalLeft>0?hms(ep.totalLeft):'LIVE';
+    document.getElementById('tokTimerSub').textContent=ep.totalLeft>0?'after all 5 epochs · TGE':'trading live';
+    document.getElementById('swapEpoch').textContent='EPOCH '+ep.num+'/5';
+    calcSwap();
+  }
+  function renderStats(){
+    const ft=bal;
+    document.getElementById('s-left').textContent=fmt(FARM_POOL-ft);
+    document.getElementById('s-today').textContent=fmt(farmedToday);
+    document.getElementById('s-active').textContent=activeNow();
+    document.getElementById('s-farmers').textContent=totalFarmers();
+    document.getElementById('poolFill').style.width=Math.min(100,100*ft/FARM_POOL)+'%';
+    const ep=epochInfo();const box=document.getElementById('epochs');box.innerHTML='';
+    for(let i=0;i<EPOCHS;i++){const d=document.createElement('div');
+      const cls=i<ep.idx?'past':(i===ep.idx&&!ep.ended?'now':'');d.className='ep '+cls;
+      const state=i<ep.idx?'closed':(i===ep.idx&&!ep.ended?'<span id="epNow">'+hms(ep.leftMs)+'</span>':'soon');
+      d.innerHTML=`<div class="n">E${i+1}</div><div class="s">${state}</div><div class="s" style="color:var(--lime)">${fmt(perEpoch[i])}</div>`;box.appendChild(d);}
+    const lb=leaderboard();const board=document.getElementById('board');
+    if(!lb.length){board.innerHTML='<div class="empty">Nobody has farmed 1000 $XBIT yet.<br>Be the first to make the leaderboard.</div>';}
+    else{board.innerHTML=lb.map((e,i)=>`<div class="r ${e.you?'you':''}"><span><span class="rk">#${i+1}</span>${e.you?'► you · '+short(e.addr):short(e.addr)}</span><span>${fmt(e.amt)} $XBIT</span></div>`).join('');}
+  }
+  function connectX(){ if(!account){toast('Connect a wallet first');return;} toast('Link X — OAuth in the real build'); }
+  function renderProfile(){
+    const body=document.getElementById('profileBody');
+    if(!account){body.innerHTML=`<div class="frame pcard"><div class="empty">Wallet not connected.<br><br><button class="connect" onclick="openModal()">CONNECT WALLET</button></div></div>`;return;}
+    const ep=epochInfo();
+    const rows=perEpoch.map((a,i)=>{const badge=i<ep.idx?'closed':(i===ep.idx&&!ep.ended?'now':'soon');
+      const b=badge==='now'?'<span class="badge now">NOW</span>':(badge==='closed'?'<span class="badge">closed</span>':'<span class="badge">soon</span>');
+      return `<div class="row"><span>Epoch ${i+1}${b}</span><span class="amt">${fmt(a)} $XBIT</span></div>`;}).join('');
+    const rank=(bal>=1000)?'#1':'—';
+    body.innerHTML=`<div class="prof-grid">
+      <div class="frame pcard">
+        <div class="eyebrow">wallet</div><div class="addr">${account}</div>
+        <div class="eyebrow" style="margin-top:16px">social</div>
+        ${xHandle?`<div class="addr">${xHandle}</div>`:`<button class="btn-x" onclick="connectX()">✕ CONNECT X</button>`}
+        <div class="eyebrow" style="margin-top:18px">total farmed</div>
+        <div class="tnum lime" style="font-family:'Jersey 10',monospace;font-size:44px">${fmt(bal)} <span style="font-size:20px;color:var(--muted)">$XBIT</span></div>
+        <div class="eyebrow" style="margin-top:12px">leaderboard rank: <span class="lime">${rank}</span> ${bal<1000?'· '+fmt(1000-bal)+' to go':''}</div>
+        <div class="eyebrow" style="margin-top:10px">raffle tickets: <span class="lime">${tickets}</span>/100</div>
+      </div>
+      <div class="frame pcard epTable"><div class="eyebrow" style="margin-bottom:6px">per epoch</div>${rows}</div>
+    </div>`;
+  }
+
+  let tickets=0, players=[];
+  function raffleAll(){const all=[...players];if(tickets>0)all.push({addr:account,t:tickets,you:true});return all;}
+  function renderRaffle(){
+    const all=raffleAll();const totalT=all.reduce((s,p)=>s+p.t,0);
+    document.getElementById('myTickets').textContent=tickets;
+    document.getElementById('chance').textContent=(totalT?Math.round(100*tickets/totalT):0)+'%';
+    document.getElementById('totTickets').textContent=fmt(totalT);
+    document.getElementById('pcount').textContent=all.length;
+    document.getElementById('collected').textContent=fmt(totalT*TICKET_PRICE);
+    const list=document.getElementById('playerList');
+    if(!all.length){list.innerHTML='<div class="empty">No players yet. Buy the first ticket.</div>';}
+    else{list.innerHTML=all.sort((a,b)=>b.t-a.t).map(p=>`<div class="p ${p.you?'you':''}"><span>${p.you?'► you':short(p.addr)}</span><span>${p.t} tix</span></div>`).join('');}
+  }
+  function buyTicket(){
+    if(!account){toast('Connect a wallet first');openModal();return;}
+    if(tickets>=MAX_TICKETS){toast('Buy limit is 100 tickets per account');return;}
+    if(bal<TICKET_PRICE){toast('You need 18,888 $XBIT for a ticket — farm first');go('farm');return;}
+    bal-=TICKET_PRICE;tickets++;document.getElementById('bal').textContent=fmt(bal);
+    renderRaffle();renderStats();renderProfile();renderHome();toast('Ticket bought · '+tickets+' total');
+  }
+
+  const DOCS=[['00','OVERVIEW','#4fe3d4'],['01','FARM','#8fd15a'],['02','EPOCHS','#e8c15a'],['03','DISTRIBUTION','#b98bff'],
+    ['04','STATS','#4fe3d4'],['05','RAFFLE','#8fd15a'],['06','$XBIT','#e8c15a'],['07','SECURITY','#b98bff'],['08','ANTI-FARM','#4fe3d4']];
+  function setDocActive(i){document.querySelectorAll('.ct-item').forEach(it=>it.classList.toggle('on',+it.dataset.i===i));}
+  function initDocs(){
+    const list=document.getElementById('ctList');list.innerHTML='';
+    DOCS.forEach((d,i)=>{const el=document.createElement('div');el.className='ct-item'+(i===0?' on':'');el.dataset.i=i;
+      el.innerHTML=`<span class="cn" style="color:${d[2]}">${d[0]}</span><span>${d[1]}</span>`;
+      el.onclick=()=>{document.getElementById('d'+i).scrollIntoView({behavior:'smooth',block:'start'});setDocActive(i);};
+      list.appendChild(el);});
+  }
+  function docScrollSpy(){
+    if(!document.getElementById('docs').classList.contains('on'))return;
+    let cur=0;DOCS.forEach((d,i)=>{const s=document.getElementById('d'+i);if(s&&s.getBoundingClientRect().top<150)cur=i;});
+    if(window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-4)cur=DOCS.length-1; // pin last at page bottom
+    setDocActive(cur);
+  }
+  window.addEventListener('scroll',docScrollSpy);
+
+  setInterval(()=>{
+    const ep=epochInfo();
+    document.getElementById('ticker').innerHTML = ep.ended ? 'FARMING ENDED · 5/5' : `EPOCH ${ep.num}/5 · ${hms(ep.leftMs)} left`;
+    document.getElementById('rigEyebrow').textContent='// farm rig · epoch '+ep.num+'/5';
+    const epNow=document.getElementById('epNow'); if(epNow)epNow.textContent=hms(ep.leftMs);
+    const cd=document.getElementById('clock'); if(cd)cd.textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'AFTER TGE';
+    const cc=document.getElementById('cardCd'); if(cc)cc.textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'TGE';
+    const tt=document.getElementById('tokTimer'); if(tt)tt.textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'LIVE';
+  },1000);
+
+  (function(){
+    const svg="<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' shape-rendering='crispEdges'>"
+      +"<rect x='10' y='1' width='2' height='2' fill='#4fe3d4'/>"
+      +"<rect x='4' y='4' width='14' height='11' fill='#0b1a1c'/>"
+      +"<rect x='5' y='5' width='12' height='9' fill='#3cc6bb'/>"
+      +"<rect x='6' y='7' width='3' height='3' fill='#0a1618'/>"
+      +"<rect x='12' y='6' width='1' height='1' fill='#0a1618'/><rect x='15' y='6' width='1' height='1' fill='#0a1618'/><rect x='13' y='8' width='1' height='1' fill='#0a1618'/><rect x='12' y='9' width='1' height='1' fill='#0a1618'/><rect x='15' y='9' width='1' height='1' fill='#0a1618'/>"
+      +"<rect x='7' y='15' width='2' height='4' fill='#0b1a1c'/><rect x='12' y='15' width='2' height='3' fill='#0b1a1c'/>"
+      +"<rect x='18' y='9' width='3' height='2' fill='#e0574b'/>"
+      +"<rect x='2' y='11' width='1' height='4' fill='#3cc6bb'/><rect x='9' y='12' width='4' height='1' fill='#0a1618'/></svg>";
+    const cur=`url("data:image/svg+xml,${encodeURIComponent(svg)}") 8 8, auto`;
+    const st=document.createElement('style');st.textContent=`*{cursor:${cur} !important}`;document.head.appendChild(st);
+  })();
+
+  initDocs();renderHome();renderStats();renderProfile();renderRaffle();renderToken();
+</script>
