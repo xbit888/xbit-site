@@ -148,6 +148,12 @@
   .pot .eyebrow{display:block;margin-bottom:6px}
   .pot .amount{font-family:"Jersey 10",monospace;font-size:78px;line-height:.85;color:var(--gold)}
   .pot .amount small{font-family:"VT323",monospace;font-size:26px;color:var(--muted)}
+  .prize-hero{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0 4px}
+  .eth-gem{width:52px;height:78px;filter:drop-shadow(0 0 9px rgba(232,193,90,.55));animation:gemglow 2.6s ease-in-out infinite}
+  @keyframes gemglow{0%,100%{filter:drop-shadow(0 0 7px rgba(232,193,90,.4))}50%{filter:drop-shadow(0 0 18px rgba(232,193,90,.9))}}
+  .prize-amt{display:flex;align-items:baseline;gap:8px;font-family:"Jersey 10",monospace;color:var(--gold);line-height:.8;text-shadow:0 0 16px rgba(232,193,90,.5)}
+  .prize-amt .num{font-size:88px}
+  .prize-amt .cur{font-size:30px}
   .ethsub{font-family:"VT323",monospace;font-size:18px;color:var(--muted);margin-top:2px}
   .rrow{display:flex;justify-content:space-between;font-family:"VT323",monospace;font-size:19px;padding:6px 0;border-top:2px solid var(--line-soft)}
   .rrow:first-of-type{border-top:none;margin-top:14px}.rrow b{color:var(--text)}
@@ -367,7 +373,17 @@
     <div class="raf-grid">
       <div class="frame gold pot">
         <span class="eyebrow">grand prize</span>
-        <div class="amount tnum">1 <small>ETH</small></div>
+        <div class="prize-hero">
+          <svg class="eth-gem" viewBox="0 0 40 60" shape-rendering="crispEdges" aria-hidden="true">
+            <polygon points="20,2 7,30 20,22" fill="#f6e6ad"/>
+            <polygon points="20,2 33,30 20,22" fill="#e8c15a"/>
+            <polygon points="7,30 20,37 20,22" fill="#e0c257"/>
+            <polygon points="33,30 20,37 20,22" fill="#c49b34"/>
+            <polygon points="7,33 20,33 20,58" fill="#f6e6ad"/>
+            <polygon points="20,33 33,33 20,58" fill="#e8c15a"/>
+          </svg>
+          <div class="prize-amt"><span class="num">1</span><span class="cur">ETH</span></div>
+        </div>
         <div class="ethsub">one random winner takes it all</div>
         <div class="rrow"><span>ticket price</span><b>18,888 $XBIT</b></div>
         <div class="rrow"><span>max per account</span><b>100 tickets</b></div>
