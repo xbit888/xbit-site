@@ -86,6 +86,8 @@
   .readout{display:flex;justify-content:space-between;align-items:flex-end;margin:6px 0 10px}
   .readout .big{font-family:"Jersey 10",monospace;font-size:52px;line-height:.85;color:var(--lime)}
   .readout .unit{font-family:"VT323",monospace;font-size:22px;color:var(--muted)}
+  .guest-banner{display:flex;align-items:center;gap:10px;background:rgba(232,193,90,.12);border:2px solid var(--gold);color:var(--gold);font-family:"VT323",monospace;font-size:16px;letter-spacing:1px;padding:8px 12px;margin-bottom:14px}
+  .guest-banner button{font-family:"Jersey 10",monospace;font-size:16px;letter-spacing:1px;background:var(--gold);color:var(--bg);border:none;padding:3px 12px;margin-left:auto}
   .fieldHud{display:flex;gap:20px;font-family:"VT323",monospace;font-size:19px;color:var(--muted);margin:4px 0 6px}
   .fieldHud b{color:var(--lime)}
   .field{position:relative;height:262px;background:var(--panel-2);border:2px solid var(--line);overflow:hidden;margin:0 0 12px}
@@ -331,6 +333,7 @@
     <div class="farm-grid">
       <div class="frame rig">
         <svg class="hero-mascot" viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg>
+        <div class="guest-banner" id="guestBanner" hidden><span>▲ GUEST MODE — playing for fun. Connect a wallet to earn real $XBIT.</span><button onclick="openModal()">CONNECT</button></div>
         <div class="eyebrow" id="rigEyebrow">// farm rig · epoch 1/5</div>
         <h2>CATCH THE <span class="lime">DROP</span></h2>
         <p class="sub">Connect your wallet and hit START. An XBIT robot pops up at a random spot — click it to grab $XBIT, and it reappears elsewhere. Beware the <span class="alarm">red XBIT</span> — clicking one drains 5–20% of your stash.</p>
@@ -636,16 +639,16 @@
       const btn=document.getElementById('connectBtn');btn.textContent=short(account);btn.classList.add('on');
       closeModal();toast('Connected: '+nameOf(id));
       document.querySelector('#log .line').innerHTML='<b class="lime">wallet connected</b> · '+short(account);
-      renderStats();renderProfile();renderRaffle();renderHome();
+      loadState();
       await ensureRobinhood(p); await refreshNet();
-      p.on&&p.on('accountsChanged',(a)=>{if(!a.length){disconnect();}else{account=a[0];btn.textContent=short(account);renderStats();renderProfile();renderRaffle();renderHome();refreshNet();}});
+      p.on&&p.on('accountsChanged',(a)=>{if(!a.length){disconnect();}else{account=a[0];btn.textContent=short(account);loadState();refreshNet();}});
       p.on&&p.on('chainChanged',()=>refreshNet());
     }catch(e){toast('Declined in wallet');}
   }
   function disconnect(){account=null;activeProvider=null;xHandle=null;
     const btn=document.getElementById('connectBtn');btn.textContent='CONNECT';btn.classList.remove('on');
     document.getElementById('netChip').hidden=true;
-    toast('Wallet disconnected');renderStats();renderProfile();renderRaffle();renderHome();}
+    toast('Wallet disconnected');loadState();}
   function onConnectClick(){ if(account){disconnect();} else {openModal();} }
 
   const TIERS=[{p:.60,name:'COMMON',c:'var(--muted)',lo:10,hi:80,cls:''},{p:.30,name:'RARE',c:'var(--lime)',lo:80,hi:300,cls:'rare'},
@@ -709,7 +712,6 @@
     if(bad){ el._to=setTimeout(()=>{ if(el.dataset.caught||robot!==el)return; el.classList.add('pop'); setTimeout(()=>el.remove(),260); robot=null; if(farmActive)spawnRobot(); }, RED_LIFE); }
   }
   function startFarm(){
-    if(!account){toast('Connect a wallet first');openModal();return;}
     const ep=epochInfo(); if(ep.ended){toast('Farming finished — all 5 epochs done');return;}
     if(farmActive)return;
     farmActive=true;sesCaught=0;sesEarn=0;cyLeft=CYCLE_SEC;
@@ -736,6 +738,7 @@
     document.getElementById('homePool').style.width=Math.min(100,100*ft/FARM_POOL)+'%';
     document.getElementById('cardEpoch').textContent='EPOCH '+ep.num+'/5';
     document.getElementById('cardCd').textContent=ep.totalLeft>0?hms(ep.totalLeft):'TGE';
+    saveState();
   }
   function calcSwap(){
     const pay=parseFloat(document.getElementById('payIn').value)||0;
@@ -815,6 +818,18 @@
     renderRaffle();renderStats();renderProfile();renderHome();toast('Ticket bought · '+tickets+' total');
   }
 
+  // ---- progress persistence (localStorage) + guest mode ----
+  function identityKey(){ return 'xbit:state:'+(account||'guest'); }
+  function saveState(){ try{ localStorage.setItem(identityKey(), JSON.stringify({bal,farmedToday,tickets,perEpoch})); }catch(e){} }
+  function loadState(){
+    let s=null; try{ s=JSON.parse(localStorage.getItem(identityKey())||'null'); }catch(e){}
+    if(s){ bal=+s.bal||0; farmedToday=+s.farmedToday||0; tickets=+s.tickets||0; for(let i=0;i<perEpoch.length;i++)perEpoch[i]=(s.perEpoch&&+s.perEpoch[i])||0; }
+    else { bal=0; farmedToday=0; tickets=0; perEpoch.fill(0); }
+    document.getElementById('bal').textContent=fmt(bal);
+    updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome();
+  }
+  function updateGuestUI(){ const b=document.getElementById('guestBanner'); if(b) b.hidden=!!account; }
+
   const DOCS=[['00','OVERVIEW','#4fe3d4'],['01','FARM','#8fd15a'],['02','EPOCHS','#e8c15a'],['03','DISTRIBUTION','#b98bff'],
     ['04','STATS','#4fe3d4'],['05','RAFFLE','#8fd15a'],['06','$XBIT','#e8c15a'],['07','SECURITY','#b98bff'],['08','ANTI-FARM','#4fe3d4']];
   function setDocActive(i){document.querySelectorAll('.ct-item').forEach(it=>it.classList.toggle('on',+it.dataset.i===i));}
@@ -857,5 +872,5 @@
     const st=document.createElement('style');st.textContent=`*{cursor:${cur} !important}`;document.head.appendChild(st);
   })();
 
-  initDocs();renderHome();renderStats();renderProfile();renderRaffle();renderToken();
+  initDocs();loadState();renderToken();
 </script>
