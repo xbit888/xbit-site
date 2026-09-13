@@ -88,7 +88,7 @@
   .fieldHud{display:flex;gap:20px;font-family:"VT323",monospace;font-size:19px;color:var(--muted);margin:4px 0 6px}
   .fieldHud b{color:var(--lime)}
   .field{position:relative;height:262px;background:var(--panel-2);border:2px solid var(--line);overflow:hidden;margin:0 0 12px}
-  .field.live{border-color:var(--lime)}
+  .field.playing{border-color:var(--lime)}
   .field-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:"VT323",monospace;font-size:20px;text-align:center;padding:0 24px}
   .sprite{position:absolute;width:54px;height:64px;padding:0;border:none;background:none;filter:drop-shadow(0 0 9px rgba(79,227,212,.75));animation:spawnIn .16s ease-out, bob 1.5s ease-in-out .16s infinite}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
@@ -101,6 +101,12 @@
   @keyframes caught{to{transform:scale(1.7);opacity:0}}
   .float{position:absolute;font-family:"Jersey 10",monospace;font-size:24px;pointer-events:none;animation:floatUp .9s ease-out forwards}
   @keyframes floatUp{0%{opacity:0;transform:translateY(4px)}20%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
+  .sprite.pop{animation:pop .28s ease-out forwards;pointer-events:none}
+  @keyframes pop{to{transform:scale(2);opacity:0}}
+  .fx-ring{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border:3px solid var(--lime);pointer-events:none;animation:fxring .45s ease-out forwards}
+  @keyframes fxring{from{transform:scale(1);opacity:.95}to{transform:scale(6);opacity:0}}
+  .fx-p{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;pointer-events:none;animation:fxpart .5s ease-out forwards}
+  @keyframes fxpart{from{transform:translate(0,0);opacity:1}to{transform:translate(var(--dx),var(--dy));opacity:0}}
   .claim{width:100%;font-family:"Jersey 10",monospace;font-size:32px;letter-spacing:2px;background:var(--green);color:var(--bg);border:none;padding:13px;box-shadow:0 var(--px) 0 0 var(--green-deep);text-transform:uppercase}
   .claim:hover:not(:disabled){filter:brightness(1.08)}.claim:active:not(:disabled){transform:translateY(var(--px));box-shadow:none}
   .claim:disabled{background:var(--panel-2);color:var(--dim);box-shadow:0 var(--px) 0 0 #000}
@@ -650,6 +656,12 @@
   const field=document.getElementById('field'), startBtn=document.getElementById('startBtn'), fieldMsg=document.getElementById('fieldMsg');
   function hud(){document.getElementById('cyCaught').textContent=sesCaught;document.getElementById('cyEarn').textContent=fmt(sesEarn);}
   function floatText(x,y,txt,color){const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=x+'px';f.style.top=y+'px';f.style.color=color;field.appendChild(f);setTimeout(()=>f.remove(),900);}
+  function catchFx(cx,cy,color){
+    const ring=document.createElement('div');ring.className='fx-ring';ring.style.left=cx+'px';ring.style.top=cy+'px';ring.style.borderColor=color;field.appendChild(ring);setTimeout(()=>ring.remove(),460);
+    for(let i=0;i<8;i++){const p=document.createElement('div');p.className='fx-p';const ang=Math.random()*6.283,d=18+Math.random()*30;
+      p.style.left=cx+'px';p.style.top=cy+'px';p.style.background=color;p.style.setProperty('--dx',(Math.cos(ang)*d)+'px');p.style.setProperty('--dy',(Math.sin(ang)*d)+'px');
+      field.appendChild(p);setTimeout(()=>p.remove(),520);}
+  }
   function spawnRobot(){
     if(robot){robot.remove();robot=null;}
     if(!farmActive)return;
@@ -661,14 +673,18 @@
     el.style.left=x+'px';el.style.top=y+'px';el.style.width=W+'px';el.style.height=H+'px';
     el.innerHTML='<svg viewBox="0 0 18 22" width="'+W+'" height="'+H+'" shape-rendering="crispEdges"><use href="#xbit-mascot"/></svg>';
     el.onclick=()=>{
+      if(el.dataset.caught)return; el.dataset.caught='1';
       const amt=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));
       const ep2=epochInfo();
       bal+=amt;sesEarn+=amt;sesCaught++;farmedToday+=amt;perEpoch[ep2.idx]+=amt;lastClaimAt=Date.now();
       document.getElementById('bal').textContent=fmt(bal);
+      catchFx(x+W/2, y+H/2, t.c);                 // hit effect: ring + pixel particles
       floatText(x,y,'+'+fmt(amt),t.c);
       logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(amt)} $XBIT`);
+      el.classList.add('pop'); setTimeout(()=>el.remove(),280);  // robot pops
+      robot=null;                                 // detach so respawn won't yank the popping one
       hud();renderStats();renderProfile();renderHome();
-      spawnRobot(); // reappears at a new random spot
+      spawnRobot();                               // new robot at a fresh random spot
     };
     field.appendChild(el);robot=el;
   }
@@ -677,13 +693,13 @@
     const ep=epochInfo(); if(ep.ended){toast('Farming finished — all 5 epochs done');return;}
     if(farmActive)return;
     farmActive=true;sesCaught=0;sesEarn=0;
-    fieldMsg.hidden=true;field.classList.add('live');
+    fieldMsg.hidden=true;field.classList.add('playing');
     startBtn.disabled=true;startBtn.textContent='FARMING…';hud();
     spawnRobot();
   }
   function stopFarm(ended){
     farmActive=false; if(robot){robot.remove();robot=null;}
-    field.classList.remove('live');fieldMsg.hidden=false;
+    field.classList.remove('playing');fieldMsg.hidden=false;
     if(ended){fieldMsg.innerHTML='Farming finished — all 5 epochs done';startBtn.disabled=true;startBtn.textContent='FARMING ENDED';}
     renderStats();renderProfile();renderHome();
   }
