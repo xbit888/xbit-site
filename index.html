@@ -90,7 +90,8 @@
   .field{position:relative;height:262px;background:var(--panel-2);border:2px solid var(--line);overflow:hidden;margin:0 0 12px}
   .field.live{border-color:var(--lime)}
   .field-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:"VT323",monospace;font-size:20px;text-align:center;padding:0 24px}
-  .sprite{position:absolute;width:46px;height:56px;padding:0;border:none;background:none;filter:drop-shadow(0 0 6px rgba(79,227,212,.55));animation:spawnIn .16s ease-out}
+  .sprite{position:absolute;width:54px;height:64px;padding:0;border:none;background:none;filter:drop-shadow(0 0 9px rgba(79,227,212,.75));animation:spawnIn .16s ease-out, bob 1.5s ease-in-out .16s infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
   .sprite.rare{filter:drop-shadow(0 0 8px rgba(79,227,212,.95))}
   .sprite.epic{filter:drop-shadow(0 0 9px rgba(185,139,255,.95))}
   .sprite.jackpot{filter:drop-shadow(0 0 12px rgba(232,193,90,1))}
@@ -324,14 +325,14 @@
         <svg class="hero-mascot" viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg>
         <div class="eyebrow" id="rigEyebrow">// farm rig · epoch 1/5</div>
         <h2>CATCH THE <span class="lime">DROP</span></h2>
-        <p class="sub">Hit START — XBIT mascots pop up at random spots on the field. Click to catch them before they vanish. Don't touch the red glitches — they cost you.</p>
+        <p class="sub">Connect your wallet and hit START. An XBIT robot pops up in the field at a random spot — click it to grab $XBIT, and it instantly appears somewhere else. Keep catching.</p>
         <div class="readout">
           <div><div class="eyebrow">your balance</div><div class="big tnum" id="bal">0</div></div>
           <div class="unit">$XBIT</div>
         </div>
-        <div class="fieldHud"><span>cycle <b id="cyTime">—</b></span><span>caught <b id="cyCaught">0</b></span><span>+<b id="cyEarn">0</b> $XBIT</span></div>
-        <div class="field" id="field"><div class="field-msg" id="fieldMsg">Hit START FARM and catch the XBIT mascots</div></div>
-        <button class="claim" id="startBtn" onclick="startCycle()">START FARM</button>
+        <div class="fieldHud"><span>caught <b id="cyCaught">0</b></span><span>this session +<b id="cyEarn">0</b> $XBIT</span></div>
+        <div class="field" id="field"><div class="field-msg" id="fieldMsg">Hit START FARM and catch the XBIT robot</div></div>
+        <button class="claim" id="startBtn" onclick="startFarm()">START FARM</button>
       </div>
       <div class="side">
         <div class="frame stat"><div class="k">$XBIT per mascot</div><div class="v"><span class="lime">10 – 3000</span></div></div>
@@ -341,7 +342,6 @@
           <div class="row"><span><i class="dot" style="background:var(--lime)"></i>Rare</span><span class="mono">30%</span></div>
           <div class="row"><span><i class="dot" style="background:var(--epic)"></i>Epic</span><span class="mono">9%</span></div>
           <div class="row"><span><i class="dot" style="background:var(--gold)"></i>Jackpot</span><span class="mono">1%</span></div>
-          <div class="row"><span><i class="dot" style="background:var(--alarm)"></i>Glitch — don't touch</span><span class="mono">−</span></div>
         </div>
         <div class="frame log" id="log"><div class="line">rig online. connect a wallet to farm…</div></div>
       </div>
@@ -645,52 +645,47 @@
   const logEl=document.getElementById('log');
   function logLine(html){const d=document.createElement('div');d.className='line';d.innerHTML=html;logEl.prepend(d);while(logEl.children.length>18)logEl.lastChild.remove();}
 
-  const CYCLE_SEC=15, GLITCH_P=0.14;
-  let farmActive=false, cyEarn=0, cyCaught=0, cyLeft=0, cyTimer=null, spawnTO=null, sprites=[];
+  // one robot at a time: click it -> +$XBIT -> it reappears at a new random spot
+  let farmActive=false, sesCaught=0, sesEarn=0, robot=null;
   const field=document.getElementById('field'), startBtn=document.getElementById('startBtn'), fieldMsg=document.getElementById('fieldMsg');
-  function hud(){document.getElementById('cyTime').textContent=farmActive?cyLeft+'s':'—';document.getElementById('cyCaught').textContent=cyCaught;document.getElementById('cyEarn').textContent=fmt(cyEarn);}
-  function clearField(){sprites.forEach(s=>{clearTimeout(s.to);s.el.remove();});sprites=[];}
-  function startCycle(){
+  function hud(){document.getElementById('cyCaught').textContent=sesCaught;document.getElementById('cyEarn').textContent=fmt(sesEarn);}
+  function floatText(x,y,txt,color){const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=x+'px';f.style.top=y+'px';f.style.color=color;field.appendChild(f);setTimeout(()=>f.remove(),900);}
+  function spawnRobot(){
+    if(robot){robot.remove();robot=null;}
+    if(!farmActive)return;
+    const ep=epochInfo(); if(ep.ended){stopFarm(true);return;}
+    const t=roll();
+    const W=54,H=64, fw=field.clientWidth||560, fh=field.clientHeight||300;
+    const x=Math.floor(Math.random()*Math.max(1,fw-W)), y=Math.floor(Math.random()*Math.max(1,fh-H));
+    const el=document.createElement('button');el.className='sprite '+(t.cls||'');
+    el.style.left=x+'px';el.style.top=y+'px';el.style.width=W+'px';el.style.height=H+'px';
+    el.innerHTML='<svg viewBox="0 0 18 22" width="'+W+'" height="'+H+'" shape-rendering="crispEdges"><use href="#xbit-mascot"/></svg>';
+    el.onclick=()=>{
+      const amt=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));
+      const ep2=epochInfo();
+      bal+=amt;sesEarn+=amt;sesCaught++;farmedToday+=amt;perEpoch[ep2.idx]+=amt;lastClaimAt=Date.now();
+      document.getElementById('bal').textContent=fmt(bal);
+      floatText(x,y,'+'+fmt(amt),t.c);
+      logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(amt)} $XBIT`);
+      hud();renderStats();renderProfile();renderHome();
+      spawnRobot(); // reappears at a new random spot
+    };
+    field.appendChild(el);robot=el;
+  }
+  function startFarm(){
     if(!account){toast('Connect a wallet first');openModal();return;}
     const ep=epochInfo(); if(ep.ended){toast('Farming finished — all 5 epochs done');return;}
     if(farmActive)return;
-    farmActive=true;cyEarn=0;cyCaught=0;cyLeft=CYCLE_SEC;clearField();
+    farmActive=true;sesCaught=0;sesEarn=0;
     fieldMsg.hidden=true;field.classList.add('live');
     startBtn.disabled=true;startBtn.textContent='FARMING…';hud();
-    scheduleSpawn();
-    cyTimer=setInterval(()=>{cyLeft--;hud();if(cyLeft<=0)endCycle();},1000);
+    spawnRobot();
   }
-  function scheduleSpawn(){ if(!farmActive)return; spawnSprite(); spawnTO=setTimeout(scheduleSpawn, 480+Math.random()*680); }
-  function floatText(x,y,txt,color){const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=x+'px';f.style.top=y+'px';f.style.color=color;field.appendChild(f);setTimeout(()=>f.remove(),900);}
-  function spawnSprite(){
-    const glitch=Math.random()<GLITCH_P; const t=glitch?null:roll();
-    const W=46,H=56, fw=field.clientWidth||600, fh=field.clientHeight||262;
-    const x=Math.floor(Math.random()*Math.max(1,fw-W)), y=Math.floor(Math.random()*Math.max(1,fh-H));
-    const el=document.createElement('button');el.className='sprite '+(glitch?'glitch':(t.cls||''));
-    el.style.left=x+'px';el.style.top=y+'px';
-    el.innerHTML='<svg viewBox="0 0 18 22" width="46" height="56" shape-rendering="crispEdges"><use href="#xbit-mascot"/></svg>';
-    const rec={el}; const life=1000+Math.random()*600;
-    rec.to=setTimeout(()=>{el.remove();sprites=sprites.filter(s=>s!==rec);}, life);
-    el.onclick=()=>{
-      clearTimeout(rec.to);sprites=sprites.filter(s=>s!==rec);
-      el.classList.add('caught');setTimeout(()=>el.remove(),260);
-      if(glitch){const pen=60+Math.floor(Math.random()*140);cyEarn=Math.max(0,cyEarn-pen);
-        floatText(x,y,'-'+pen,'var(--alarm)');logLine('<b class="alarm">GLITCH</b> · -'+pen+' $XBIT');}
-      else{const amt=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));cyEarn+=amt;cyCaught++;
-        floatText(x,y,'+'+fmt(amt),t.c);logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(amt)} $XBIT`);}
-      hud();
-    };
-    field.appendChild(el);sprites.push(rec);
-  }
-  function endCycle(){
-    farmActive=false;clearInterval(cyTimer);clearTimeout(spawnTO);clearField();
+  function stopFarm(ended){
+    farmActive=false; if(robot){robot.remove();robot=null;}
     field.classList.remove('live');fieldMsg.hidden=false;
-    const ep=epochInfo();
-    bal+=cyEarn;farmedToday+=cyEarn;perEpoch[ep.idx]+=cyEarn;lastClaimAt=Date.now();
-    document.getElementById('bal').textContent=fmt(bal);
-    fieldMsg.innerHTML=`Cycle done · caught ${cyCaught} · <span class="lime">+${fmt(cyEarn)} $XBIT</span>`;
-    startBtn.disabled=false;startBtn.textContent='NEXT CYCLE ▸';hud();
-    renderStats();renderProfile();renderRaffle();renderHome();
+    if(ended){fieldMsg.innerHTML='Farming finished — all 5 epochs done';startBtn.disabled=true;startBtn.textContent='FARMING ENDED';}
+    renderStats();renderProfile();renderHome();
   }
 
   function renderHome(){
