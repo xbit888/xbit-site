@@ -245,6 +245,8 @@
   .overlay{position:fixed;inset:0;background:rgba(7,7,10,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:18px}
   .overlay.on{display:flex}
   .modal{width:376px;max-width:100%;padding:20px}
+  .modal.report{width:460px}
+  .rep-timer{font-family:"Jersey 10",monospace;font-size:46px;color:var(--lime);letter-spacing:2px;margin:2px 0 14px;line-height:.9}
   .modal h3{font-size:26px;letter-spacing:2px;margin-bottom:2px}
   .modal .mh{display:flex;justify-content:space-between;align-items:center}
   .modal .x{background:none;border:none;color:var(--muted);font-family:"Jersey 10",monospace;font-size:26px}
@@ -304,8 +306,8 @@
         <h1>YOU DON'T BUY <span class="lime">XBIT</span>.<br>YOU <span class="lime">FARM</span> IT.</h1>
         <p class="lead">XBIT can't be bought ready-made. Connect a wallet, catch XBIT mascots on the farm field, and stack tokens. Five 12-hour epochs, drops from a fixed 200M pool, and a final 1 ETH raffle for farmers.</p>
         <div class="hero-btns">
-          <button class="hbtn primary" onclick="go('farm')">▸ START FARMING</button>
-          <button class="hbtn" onclick="go('docs')">HOW IT WORKS</button>
+          <button class="hbtn primary" onclick="go('farm')">↗ START FARMING</button>
+          <button class="hbtn" onclick="openReport()">FARM REPORT</button>
         </div>
         <div class="hero-stats">
           <div class="eyebrow">farmed from pool · 200,000,000 $XBIT</div>
@@ -524,6 +526,14 @@
   <div class="frame modal">
     <div class="mh"><h3>CONNECT A WALLET</h3><button class="x" onclick="closeModal()">×</button></div>
     <div class="wallets" id="wallets"></div>
+  </div>
+</div>
+<div class="overlay" id="reportOverlay" onclick="if(event.target===this)closeReport()">
+  <div class="frame modal report">
+    <div class="mh"><h3>FARM <span class="lime">REPORT</span></h3><button class="x" onclick="closeReport()">×</button></div>
+    <div class="eyebrow">farming ends in</div>
+    <div class="rep-timer tnum" id="repTimer">--:--:--</div>
+    <div id="repRows"></div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -830,6 +840,29 @@
   }
   function updateGuestUI(){ const b=document.getElementById('guestBanner'); if(b) b.hidden=!!account; }
 
+  // ---- FARM REPORT (time until all farming ends) ----
+  function openReport(){ renderReport(); document.getElementById('reportOverlay').classList.add('on'); }
+  function closeReport(){ document.getElementById('reportOverlay').classList.remove('on'); }
+  function renderReport(){
+    const ep=epochInfo(); const left=FARM_POOL-bal;
+    document.getElementById('repTimer').textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'FARMING ENDED';
+    let eps='';
+    for(let i=0;i<EPOCHS;i++){
+      const cls=i<ep.idx?'past':(i===ep.idx&&!ep.ended?'now':'');
+      const st=i<ep.idx?'closed':(i===ep.idx&&!ep.ended?hms(ep.leftMs):'soon');
+      eps+=`<div class="ep ${cls}"><div class="n">E${i+1}</div><div class="s">${st}</div><div class="s" style="color:var(--lime)">${fmt(perEpoch[i])}</div></div>`;
+    }
+    document.getElementById('repRows').innerHTML=`
+      <div class="trow"><span>current epoch</span><b>${ep.num} / 5</b></div>
+      <div class="trow"><span>this epoch ends in</span><b class="tnum">${ep.ended?'—':hms(ep.leftMs)}</b></div>
+      <div class="trow"><span>pool left</span><b class="lime tnum">${fmt(left)}</b></div>
+      <div class="trow"><span>your farmed</span><b class="lime tnum">${fmt(bal)} $XBIT</b></div>
+      <div class="poolbar" style="margin:12px 0"><i style="width:${Math.min(100,100*bal/FARM_POOL)}%"></i></div>
+      <div class="eyebrow" style="margin-bottom:6px">epochs · your $XBIT each</div>
+      <div class="epochs">${eps}</div>
+      <div style="font-family:'VT323',monospace;font-size:15px;color:var(--dim);margin-top:14px">After all 5 epochs → snapshot → TGE. Then you claim your $XBIT with a 10% / 15 min drip.</div>`;
+  }
+
   const DOCS=[['00','OVERVIEW','#4fe3d4'],['01','FARM','#8fd15a'],['02','EPOCHS','#e8c15a'],['03','DISTRIBUTION','#b98bff'],
     ['04','STATS','#4fe3d4'],['05','RAFFLE','#8fd15a'],['06','$XBIT','#e8c15a'],['07','SECURITY','#b98bff'],['08','ANTI-FARM','#4fe3d4']];
   function setDocActive(i){document.querySelectorAll('.ct-item').forEach(it=>it.classList.toggle('on',+it.dataset.i===i));}
@@ -856,6 +889,7 @@
     const cd=document.getElementById('clock'); if(cd)cd.textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'AFTER TGE';
     const cc=document.getElementById('cardCd'); if(cc)cc.textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'TGE';
     const tt=document.getElementById('tokTimer'); if(tt)tt.textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'LIVE';
+    const ro=document.getElementById('reportOverlay'); if(ro&&ro.classList.contains('on'))renderReport();
   },1000);
 
   (function(){
