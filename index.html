@@ -96,6 +96,7 @@
   .sprite.rare{filter:drop-shadow(0 0 8px rgba(79,227,212,.95))}
   .sprite.epic{filter:drop-shadow(0 0 9px rgba(185,139,255,.95))}
   .sprite.jackpot{filter:drop-shadow(0 0 12px rgba(232,193,90,1))}
+  .sprite.red{filter:drop-shadow(0 0 11px rgba(224,87,75,.95)) hue-rotate(180deg) saturate(1.8)}
   .sprite.glitch{filter:drop-shadow(0 0 9px rgba(224,87,75,.95)) hue-rotate(160deg) saturate(1.7)}
   .sprite.caught{animation:caught .26s ease-out forwards}
   @keyframes spawnIn{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
@@ -332,7 +333,7 @@
         <svg class="hero-mascot" viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg>
         <div class="eyebrow" id="rigEyebrow">// farm rig · epoch 1/5</div>
         <h2>CATCH THE <span class="lime">DROP</span></h2>
-        <p class="sub">Connect your wallet and hit START. An XBIT robot pops up in the field at a random spot — click it to grab $XBIT, and it instantly appears somewhere else. Keep catching.</p>
+        <p class="sub">Connect your wallet and hit START. An XBIT robot pops up at a random spot — click it to grab $XBIT, and it reappears elsewhere. Beware the <span class="alarm">red XBIT</span> — clicking one drains 5–20% of your stash.</p>
         <div class="readout">
           <div><div class="eyebrow">your balance</div><div class="big tnum" id="bal">0</div></div>
           <div class="unit">$XBIT</div>
@@ -349,6 +350,7 @@
           <div class="row"><span><i class="dot" style="background:var(--lime)"></i>Rare</span><span class="mono">30%</span></div>
           <div class="row"><span><i class="dot" style="background:var(--epic)"></i>Epic</span><span class="mono">9%</span></div>
           <div class="row"><span><i class="dot" style="background:var(--gold)"></i>Jackpot</span><span class="mono">1%</span></div>
+          <div class="row"><span><i class="dot" style="background:var(--alarm)"></i>Red XBIT — trap</span><span class="mono">−5–20%</span></div>
         </div>
         <div class="frame log" id="log"><div class="line">rig online. connect a wallet to farm…</div></div>
       </div>
@@ -663,29 +665,42 @@
       p.style.left=cx+'px';p.style.top=cy+'px';p.style.background=color;p.style.setProperty('--dx',(Math.cos(ang)*d)+'px');p.style.setProperty('--dy',(Math.sin(ang)*d)+'px');
       field.appendChild(p);setTimeout(()=>p.remove(),520);}
   }
+  const RED_P=0.18; // chance a spawned robot is a red trap
   function spawnRobot(){
     if(robot){robot.remove();robot=null;}
     if(!farmActive)return;
     const ep=epochInfo(); if(ep.ended){stopFarm(true);return;}
-    const t=roll();
+    const bad=Math.random()<RED_P;
+    const t=bad?null:roll();
     const W=54,H=64, fw=field.clientWidth||560, fh=field.clientHeight||300;
     const x=Math.floor(Math.random()*Math.max(1,fw-W)), y=Math.floor(Math.random()*Math.max(1,fh-H));
-    const el=document.createElement('button');el.className='sprite '+(t.cls||'');
+    const el=document.createElement('button');el.className='sprite '+(bad?'red':(t.cls||''));
     el.style.left=x+'px';el.style.top=y+'px';el.style.width=W+'px';el.style.height=H+'px';
     el.innerHTML='<svg viewBox="0 0 18 22" width="'+W+'" height="'+H+'" shape-rendering="crispEdges"><use href="#xbit-mascot"/></svg>';
     el.onclick=()=>{
       if(el.dataset.caught)return; el.dataset.caught='1';
-      const amt=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));
-      const ep2=epochInfo();
-      bal+=amt;sesEarn+=amt;sesCaught++;farmedToday+=amt;perEpoch[ep2.idx]+=amt;lastClaimAt=Date.now();
-      document.getElementById('bal').textContent=fmt(bal);
-      catchFx(x+W/2, y+H/2, t.c);                 // hit effect: ring + pixel particles
-      floatText(x,y,'+'+fmt(amt),t.c);
-      logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(amt)} $XBIT`);
-      el.classList.add('pop'); setTimeout(()=>el.remove(),280);  // robot pops
-      robot=null;                                 // detach so respawn won't yank the popping one
+      const cx=x+W/2, cy=y+H/2;
+      if(bad){
+        const pct=5+Math.floor(Math.random()*16);              // 5–20%
+        const loss=Math.round(bal*pct/100);
+        bal=Math.max(0,bal-loss); sesEarn=Math.max(0,sesEarn-loss);
+        document.getElementById('bal').textContent=fmt(bal);
+        catchFx(cx,cy,'var(--alarm)');
+        floatText(x,y,'-'+fmt(loss),'var(--alarm)');
+        logLine(`<b class="alarm">RED XBIT</b> · -${fmt(loss)} $XBIT (-${pct}%)`);
+      }else{
+        const amt=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));
+        const ep2=epochInfo();
+        bal+=amt;sesEarn+=amt;sesCaught++;farmedToday+=amt;perEpoch[ep2.idx]+=amt;lastClaimAt=Date.now();
+        document.getElementById('bal').textContent=fmt(bal);
+        catchFx(cx,cy,t.c);
+        floatText(x,y,'+'+fmt(amt),t.c);
+        logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(amt)} $XBIT`);
+      }
+      el.classList.add('pop'); setTimeout(()=>el.remove(),280);
+      robot=null;
       hud();renderStats();renderProfile();renderHome();
-      spawnRobot();                               // new robot at a fresh random spot
+      spawnRobot();
     };
     field.appendChild(el);robot=el;
   }
