@@ -27,7 +27,8 @@
   .frame.gold::before{background:var(--gold);box-shadow:calc(100% + 4px) 0 0 var(--gold)}
 
   .wrap{max-width:1040px;margin:0 auto;padding:0 18px 64px}
-  header{position:sticky;top:0;z-index:20;background:rgba(7,7,10,.94);border-bottom:var(--px) solid var(--line);backdrop-filter:blur(2px)}
+  header{position:sticky;top:0;z-index:20;background:rgba(7,7,10,.94);backdrop-filter:blur(2px)}
+  header::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:repeating-linear-gradient(90deg,var(--line) 0 7px,transparent 7px 13px)}
   .bar{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
   .logo{display:flex;align-items:center;gap:9px}
   .logo .mark{width:36px;height:36px;flex:none;filter:drop-shadow(0 0 5px rgba(79,227,212,.55))}
