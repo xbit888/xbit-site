@@ -350,7 +350,7 @@
           <div><div class="eyebrow">your balance</div><div class="big tnum" id="bal">0</div></div>
           <div class="unit">$XBIT</div>
         </div>
-        <div class="fieldHud"><span>cycle <b id="cyTime">15s</b></span><span>caught <b id="cyCaught">0</b></span><span>+<b id="cyEarn">0</b> $XBIT</span></div>
+        <div class="fieldHud"><span>cycle <b id="cyTime">15s</b></span><span>caught <b id="cyCaught">0</b></span><span>+<b id="cyEarn">0</b> $XBIT</span><span id="cyBoost"></span></div>
         <div class="field" id="field"><div class="field-msg" id="fieldMsg">Hit START FARM and catch the XBIT robot</div></div>
         <button class="claim" id="startBtn" onclick="startFarm()">START FARM</button>
       </div>
@@ -579,6 +579,9 @@
 
   const FARM_POOL=200000000, TICKET_PRICE=18888, MAX_TICKETS=100, XBIT_PER_ETH=5000000;
   let bal=0, farmedToday=0; const perEpoch=[0,0,0,0,0]; let lastClaimAt=0;
+  let referredBy=null, referrals=0;   // referredBy: whose link brought me; referrals: friends I brought (from backend)
+  function boostMult(){ return 1 + 0.10*Math.min(5,referrals) + ((referredBy && referredBy.toLowerCase()!==(account||'').toLowerCase())?0.10:0); }
+  function boostPct(){ return Math.round((boostMult()-1)*100); }
   function activeNow(){ return (account && (Date.now()-lastClaimAt)<120000) ? 1 : 0; }
   function totalFarmers(){ return (account && bal>0) ? 1 : 0; }
   function leaderboard(){ return (bal>=1000 && account) ? [{addr:account,amt:bal,you:true}] : []; }
@@ -690,7 +693,8 @@
   const CYCLE_SEC=15;
   let farmActive=false, sesCaught=0, sesEarn=0, robot=null, cyLeft=0, cyTimer=null;
   const field=document.getElementById('field'), startBtn=document.getElementById('startBtn'), fieldMsg=document.getElementById('fieldMsg');
-  function hud(){document.getElementById('cyTime').textContent=farmActive?cyLeft+'s':'—';document.getElementById('cyCaught').textContent=sesCaught;document.getElementById('cyEarn').textContent=fmt(sesEarn);}
+  function hud(){document.getElementById('cyTime').textContent=farmActive?cyLeft+'s':'—';document.getElementById('cyCaught').textContent=sesCaught;document.getElementById('cyEarn').textContent=fmt(sesEarn);
+    const bc=document.getElementById('cyBoost'); if(bc)bc.innerHTML=boostPct()>0?'<b class="lime">⚡ +'+boostPct()+'%</b>':'';}
   function floatText(x,y,txt,color){const f=document.createElement('div');f.className='float';f.textContent=txt;f.style.left=x+'px';f.style.top=y+'px';f.style.color=color;field.appendChild(f);setTimeout(()=>f.remove(),900);}
   function catchFx(cx,cy,color){
     const ring=document.createElement('div');ring.className='fx-ring';ring.style.left=cx+'px';ring.style.top=cy+'px';ring.style.borderColor=color;field.appendChild(ring);setTimeout(()=>ring.remove(),460);
@@ -723,7 +727,7 @@
         floatText(x,y,'-'+fmt(loss),'var(--alarm)');
         logLine(`<b class="alarm">RED XBIT</b> · -${fmt(loss)} $XBIT (-${pct}%)`);
       }else{
-        const amt=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));
+        const amt=Math.round((t.lo+Math.floor(Math.random()*(t.hi-t.lo+1)))*boostMult());
         const ep2=epochInfo();
         bal+=amt;sesEarn+=amt;sesCaught++;farmedToday+=amt;perEpoch[ep2.idx]+=amt;lastClaimAt=Date.now();
         document.getElementById('bal').textContent=fmt(bal);
@@ -821,6 +825,10 @@
         <div class="tnum lime" style="font-family:'Jersey 10',monospace;font-size:44px">${fmt(bal)} <span style="font-size:20px;color:var(--muted)">$XBIT</span></div>
         <div class="eyebrow" style="margin-top:12px">leaderboard rank: <span class="lime">${rank}</span> ${bal<1000?'· '+fmt(1000-bal)+' to go':''}</div>
         <div class="eyebrow" style="margin-top:10px">raffle tickets: <span class="lime">${tickets}</span>/100</div>
+        <div class="eyebrow" style="margin-top:16px">your referral link</div>
+        <div class="addr" style="font-size:16px">${location.origin+location.pathname}?ref=${short(account)}</div>
+        <button class="btn-x" onclick="copyRef()">COPY LINK</button>
+        <div class="eyebrow" style="margin-top:10px">friends referred: <span class="lime">${referrals}</span> · farm boost: <span class="lime">+${boostPct()}%</span></div>
       </div>
       <div class="frame pcard epTable"><div class="eyebrow" style="margin-bottom:6px">per epoch</div>${rows}</div>
     </div>`;
@@ -858,6 +866,7 @@
     updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome();
   }
   function updateGuestUI(){ const b=document.getElementById('guestBanner'); if(b) b.hidden=!!account; }
+  function copyRef(){ if(!account){toast('Connect a wallet to get your link');return;} const l=location.origin+location.pathname+'?ref='+account; try{navigator.clipboard.writeText(l);toast('Referral link copied');}catch(e){toast(l);} }
 
   // ---- FARM REPORT (time until all farming ends) ----
   function openReport(){ renderReport(); document.getElementById('reportOverlay').classList.add('on'); }
@@ -925,5 +934,7 @@
     const st=document.createElement('style');st.textContent=`*{cursor:${cur} !important}`;document.head.appendChild(st);
   })();
 
+  try{const rq=new URLSearchParams(location.search).get('ref'); if(rq && !localStorage.getItem('xbit:ref'))localStorage.setItem('xbit:ref',rq);}catch(e){}
+  try{referredBy=localStorage.getItem('xbit:ref')||null;}catch(e){}
   initDocs();loadState();renderToken();
 </script>
