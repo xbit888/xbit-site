@@ -345,7 +345,7 @@
         <div class="guest-banner" id="guestBanner" hidden><span>▲ GUEST MODE — playing for fun. Connect a wallet to earn real $XBIT.</span><button onclick="openModal()">CONNECT</button></div>
         <div class="eyebrow" id="rigEyebrow">// farm rig · epoch 1/5</div>
         <h2>CATCH THE <span class="lime">DROP</span></h2>
-        <p class="sub">Connect your wallet and hit START. An XBIT robot pops up at a random spot — click it to grab $XBIT, and it reappears elsewhere. Beware the <span class="alarm">red XBIT</span> — clicking one drains 5–20% of your stash.</p>
+        <p class="sub">Connect your wallet and hit START. An XBIT robot pops up at a random spot — click it to grab $XBIT, and it reappears elsewhere. Beware the <span class="alarm">red XBIT</span> — clicking one burns 5–20% of what you've farmed this cycle.</p>
         <div class="readout">
           <div><div class="eyebrow">your balance</div><div class="big tnum" id="bal">0</div></div>
           <div class="unit">$XBIT</div>
@@ -362,7 +362,7 @@
           <div class="row"><span><i class="dot" style="background:var(--lime)"></i>Rare</span><span class="mono">30%</span></div>
           <div class="row"><span><i class="dot" style="background:var(--epic)"></i>Epic</span><span class="mono">9%</span></div>
           <div class="row"><span><i class="dot" style="background:var(--gold)"></i>Jackpot</span><span class="mono">1%</span></div>
-          <div class="row"><span><i class="dot" style="background:var(--alarm)"></i>Red XBIT — trap</span><span class="mono">−5–20%</span></div>
+          <div class="row"><span><i class="dot" style="background:var(--alarm)"></i>Red XBIT — trap</span><span class="mono">−5–20% / cycle</span></div>
         </div>
         <div class="frame log" id="log"><div class="line">rig online. connect a wallet to farm…</div></div>
       </div>
@@ -495,8 +495,8 @@
         <div class="dsec" id="d0"><div class="dnum">00</div><h3>OVERVIEW</h3>
           <p>XBIT is a currency you can't buy ready-made — you only farm it. Catch XBIT robots on the farm field to stack tokens: play as a guest, or connect an EVM wallet to earn the real, claimable $XBIT. The only thing on-chain is the $XBIT token itself.</p></div>
         <div class="dsec" id="d1"><div class="dnum">01</div><h3>FARM</h3>
-          <p>Hit START to begin a 15-second farm cycle. One XBIT robot appears at a random spot — click it to grab $XBIT and it instantly pops up somewhere else; keep catching until the cycle ends, then start the next one. Payouts are weighted: Common, Rare, Epic, Jackpot.</p>
-          <p>Beware the <span class="alarm">red XBIT</span> robots — clicking one drains 5–20% of your stash. Leave a red one alone and it disappears on its own after 2 seconds. Active catching instead of an auto-claim is what keeps bots out.</p>
+          <p>Hit START to begin a 15-second farm cycle. One XBIT robot appears at a random spot — click it to grab $XBIT and it instantly pops up somewhere else; keep catching until the cycle ends. When the 15 seconds are up, that cycle's catch is banked to your farmed balance — validated and capped on the server when you're signed in. Payouts are weighted: Common, Rare, Epic, Jackpot.</p>
+          <p>Beware the <span class="alarm">red XBIT</span> robots — clicking one burns 5–20% of what you've farmed in the current cycle; your already-banked balance is never touched. Leave a red one alone and it vanishes on its own after 2 seconds. Active catching instead of an auto-claim is what keeps bots out.</p>
           <p>You can play as a guest without a wallet — progress is saved in your browser. Connect a wallet to earn real, claimable $XBIT.</p></div>
         <div class="dsec" id="d2"><div class="dnum">02</div><h3>EPOCHS</h3>
           <p>Five 12-hour epochs (60h of farming). Drops come from a fixed pool of 200,000,000 $XBIT, distributed pro-rata by how much you farmed. Your profile shows what you caught in each epoch.</p></div>
@@ -530,7 +530,7 @@
           <p>Connecting a wallet is a message signature, not a transaction — it cannot move funds. The site never asks for your seed phrase. Every action is approved by you in your own wallet and only touches audited contracts. Draining is impossible by design.</p></div>
         <div class="dsec" id="d8"><div class="dnum">08</div><h3>ANTI-FARM</h3>
           <p>Against multi-wallet farms we stack:</p>
-          <ul><li>wallet sign-in (SIWE) + captcha;</li><li>a gate: non-empty wallet (balance / history / age);</li><li>device fingerprint and IP filtering;</li><li>farm = a share of a fixed pool (nothing above 200M can be drained);</li><li>a sybil snapshot filter before tokens are handed out.</li></ul></div>
+          <ul><li>wallet sign-in by one-time message signature (nonce);</li><li>a server-side on-chain gate — a wallet needs real balance / tx history, otherwise it earns at a reduced rate or not at all;</li><li>every payout is validated and capped on the server per cycle, so the client can't fake amounts;</li><li>farm = a share of a fixed 200M pool — nothing above it can ever be handed out;</li><li>a sybil snapshot filter before tokens are distributed.</li></ul></div>
       </div>
     </div>
   </section>
