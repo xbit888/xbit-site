@@ -582,12 +582,12 @@
   let BOARD=[];
   async function apiGet(path){
     const r=await fetch(API+path,{headers: token?{authorization:'Bearer '+token}:{}});
-    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
+    if(!r.ok){ const e=await r.json().catch(()=>({})); const err=new Error(e.error||('HTTP '+r.status)); err.status=r.status; throw err; }
     return r.json();
   }
   async function apiPost(path,body){
     const r=await fetch(API+path,{method:'POST',headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:JSON.stringify(body||{})});
-    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
+    if(!r.ok){ const e=await r.json().catch(()=>({})); const err=new Error(e.error||('HTTP '+r.status)); err.status=r.status; throw err; }
     return r.json();
   }
   async function refreshStats(){ try{ STATS=await apiGet('/api/stats'); renderStats(); renderHome(); }catch(e){} }
@@ -603,7 +603,7 @@
       document.getElementById('bal').textContent=fmt(bal);
       updateConnectBtn(); updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome(); hud();
     }catch(e){
-      if(/token|401/i.test(e.message||'')){ logoutLocal(); loadState(); }
+      if(e.status===401||e.status===403){ logoutLocal(); loadState(); }
     }
   }
   // ---- X (Twitter) login: full-page redirect to the backend OAuth flow ----
