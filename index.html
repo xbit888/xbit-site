@@ -301,7 +301,7 @@
     <div class="spacer"></div>
     <div class="ticker mono" id="ticker">EPOCH 1/5 · 12:00:00 left</div>
     <button class="netchip" id="netChip" hidden onclick="switchNet()"></button>
-    <button class="connect" id="connectBtn" onclick="onConnectClick()">CONNECT</button>
+    <button class="connect" id="connectBtn" onclick="onConnectClick()">CONNECT X</button>
   </div>
 </header>
 
@@ -342,7 +342,7 @@
     <div class="farm-grid">
       <div class="frame rig">
         <svg class="hero-mascot" viewBox="0 0 18 22" shape-rendering="crispEdges" aria-hidden="true"><use href="#xbit-mascot"/></svg>
-        <div class="guest-banner" id="guestBanner" hidden><span>▲ GUEST MODE — playing for fun. Connect a wallet to earn real $XBIT.</span><button onclick="openModal()">CONNECT</button></div>
+        <div class="guest-banner" id="guestBanner" hidden><span>▲ GUEST MODE — playing for fun. Connect X to earn real $XBIT.</span><button onclick="xLogin()">CONNECT X</button></div>
         <div class="eyebrow" id="rigEyebrow">// farm rig · epoch 1/5</div>
         <h2>CATCH THE <span class="lime">DROP</span></h2>
         <p class="sub">Connect your wallet and hit START. An XBIT robot pops up at a random spot — click it to grab $XBIT, and it reappears elsewhere. Beware the <span class="alarm">red XBIT</span> — clicking one burns 5–20% of what you've farmed this cycle.</p>
@@ -364,7 +364,7 @@
           <div class="row"><span><i class="dot" style="background:var(--gold)"></i>Jackpot</span><span class="mono">1%</span></div>
           <div class="row"><span><i class="dot" style="background:var(--alarm)"></i>Red XBIT — trap</span><span class="mono">−5–20% / cycle</span></div>
         </div>
-        <div class="frame log" id="log"><div class="line">rig online. connect a wallet to farm…</div></div>
+        <div class="frame log" id="log"><div class="line">rig online. connect X to farm…</div></div>
       </div>
     </div>
   </section>
@@ -493,7 +493,7 @@
       <aside class="contents"><div class="ct-h">CONTENTS</div><div id="ctList"></div></aside>
       <div class="docs-body">
         <div class="dsec" id="d0"><div class="dnum">00</div><h3>OVERVIEW</h3>
-          <p>XBIT is a currency you can't buy ready-made — you only farm it. Catch XBIT robots on the farm field to stack tokens: play as a guest, or connect an EVM wallet to earn the real, claimable $XBIT. The only thing on-chain is the $XBIT token itself.</p></div>
+          <p>XBIT is a currency you can't buy ready-made — you only farm it. Catch XBIT robots on the farm field to stack tokens: play as a guest, or connect your X (Twitter) account to earn the real, claimable $XBIT. Link a wallet in your profile to receive tokens at TGE and to join the raffle. The only thing on-chain is the $XBIT token itself.</p></div>
         <div class="dsec" id="d1"><div class="dnum">01</div><h3>FARM</h3>
           <p>Hit START to begin a 15-second farm cycle. One XBIT robot appears at a random spot — click it to grab $XBIT and it instantly pops up somewhere else; keep catching until the cycle ends. When the 15 seconds are up, that cycle's catch is banked to your farmed balance — validated and capped on the server when you're signed in. Payouts are weighted: Common, Rare, Epic, Jackpot.</p>
           <p>Beware the <span class="alarm">red XBIT</span> robots — clicking one burns 5–20% of what you've farmed in the current cycle; your already-banked balance is never touched. Leave a red one alone and it vanishes on its own after 2 seconds. Active catching instead of an auto-claim is what keeps bots out.</p>
@@ -527,10 +527,10 @@
         <div class="dsec" id="d6"><div class="dnum">06</div><h3>$XBIT</h3>
           <p>Token on Robinhood Chain (chain ID 4663), supply 1,000,000,000. Five epochs of farming → snapshot → claim with a drip (10% every 15 min). A one-time burn event trims supply.</p></div>
         <div class="dsec" id="d7"><div class="dnum">07</div><h3>SECURITY</h3>
-          <p>Connecting a wallet is a message signature, not a transaction — it cannot move funds. The site never asks for your seed phrase. Every action is approved by you in your own wallet and only touches audited contracts. Draining is impossible by design.</p></div>
+          <p>You sign in with X — no wallet needed to farm. When you do link a wallet (for the raffle and to receive $XBIT at TGE), it's a message signature, not a transaction — it cannot move funds. The site never asks for your seed phrase. Every action is approved by you in your own wallet and only touches audited contracts. Draining is impossible by design.</p></div>
         <div class="dsec" id="d8"><div class="dnum">08</div><h3>ANTI-FARM</h3>
           <p>Against multi-wallet farms we stack:</p>
-          <ul><li>wallet sign-in by one-time message signature (nonce);</li><li>a server-side on-chain gate — a wallet needs real balance / tx history, otherwise it earns at a reduced rate or not at all;</li><li>every payout is validated and capped on the server per cycle, so the client can't fake amounts;</li><li>farm = a share of a fixed 200M pool — nothing above it can ever be handed out;</li><li>a sybil snapshot filter before tokens are distributed.</li></ul></div>
+          <ul><li>sign-in with X (OAuth) — one account per real X profile, so multi-wallet farms don't work;</li><li>brand-new X accounts farm at a reduced rate until they age;</li><li>every payout is validated and capped on the server per cycle, so the client can't fake amounts;</li><li>farm = a share of a fixed 200M pool — nothing above it can ever be handed out;</li><li>a sybil snapshot filter before tokens are distributed.</li></ul></div>
       </div>
     </div>
   </section>
@@ -543,7 +543,7 @@
 
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="frame modal">
-    <div class="mh"><h3>CONNECT A WALLET</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mh"><h3>LINK A WALLET</h3><button class="x" onclick="closeModal()">×</button></div>
     <div class="wallets" id="wallets"></div>
   </div>
 </div>
@@ -574,7 +574,8 @@
 
   // ---- backend wiring ----
   const API = 'https://xbit-backend-production.up.railway.app';
-  let token=null, tier=null, isAdmin=false, serverMode=false;
+  let token=null, tier=null, serverMode=false;      // serverMode = signed in with X
+  let xid=null, handle=null, linkedWallet=null;      // X identity + optional linked wallet
   const CLIENT_MULT={blocked:0,restricted:0.4,trusted:1,verified:1.2};
   function clientMult(){ return serverMode ? (CLIENT_MULT[tier] ?? 1) : 1; }
   let STATS={left:200000000,used:0,today:0,active:0,farmers:0,raffleTickets:0,rafflePlayers:0,epoch:1,epochs:5};
@@ -595,35 +596,41 @@
     if(!serverMode||!token) return;
     try{
       const me=await apiGet('/api/me');
+      xid=me.id; handle=me.handle||null; linkedWallet=me.wallet||null;
       bal=+me.balance||0; tickets=+me.tickets||0;
       for(let i=0;i<perEpoch.length;i++) perEpoch[i]=(me.perEpoch&&+me.perEpoch[i])||0;
-      referrals=+me.referrals||0; tier=me.tier||tier; if(me.x)xHandle=me.x;
+      referrals=+me.referrals||0; tier=me.tier||tier;
       document.getElementById('bal').textContent=fmt(bal);
-      updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome(); hud();
+      updateConnectBtn(); updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome(); hud();
     }catch(e){
-      if(/token|401/i.test(e.message||'')){ token=null; serverMode=false;
-        try{localStorage.removeItem('xbit:token');localStorage.removeItem('xbit:addr');}catch(_){}
-        loadState(); }
+      if(/token|401/i.test(e.message||'')){ logoutLocal(); loadState(); }
     }
   }
-  async function serverLogin(p){
+  // ---- X (Twitter) login: full-page redirect to the backend OAuth flow ----
+  function xLogin(){ const ref=referredBy?('?ref='+encodeURIComponent(referredBy)):''; window.location.href=API+'/api/x/login'+ref; }
+  function logoutLocal(){ token=null;serverMode=false;xid=null;handle=null;linkedWallet=null;tier=null;referrals=0;
+    try{localStorage.removeItem('xbit:token');}catch(e){} updateConnectBtn(); }
+  function updateConnectBtn(){ const btn=document.getElementById('connectBtn'); if(!btn)return;
+    if(serverMode&&handle){ btn.textContent='@'+handle; btn.classList.add('on'); }
+    else if(serverMode){ btn.textContent='CONNECTED'; btn.classList.add('on'); }
+    else { btn.textContent='CONNECT X'; btn.classList.remove('on'); } }
+  // ---- link a wallet to the signed-in X account (payout / raffle) ----
+  async function linkWallet(id){
+    if(!serverMode){toast('Connect X first');return;}
+    if(id==='walletconnect'){toast('WalletConnect (QR) coming in the real build');return;}
+    if(id==='robinhood'){toast('Robinhood Wallet is mobile — QR in the real build');return;}
+    const p=findProvider(id); if(!p){toast(nameOf(id)+' not found — install the extension');return;}
     try{
-      const {nonce}=await apiGet('/api/nonce?address='+account);
-      const message=`Sign in to XBIT Farm.\n\nAddress: ${account}\nNonce: ${nonce}`;
-      const signature=await p.request({method:'personal_sign',params:[message,account]});
-      const res=await apiPost('/api/login',{address:account,message,signature,ref:referredBy||undefined});
-      token=res.token; tier=res.tier; isAdmin=!!res.isAdmin; serverMode=true;
-      try{localStorage.setItem('xbit:token',token);localStorage.setItem('xbit:addr',account);}catch(e){}
-      await refreshMe();
-      if(tier==='blocked') toast('Wallet gate: add some on-chain history to earn real $XBIT');
-      else toast('Signed in'+(tier?(' · '+tier):''));
-      return true;
-    }catch(e){
-      serverMode=false; token=null;
-      toast('Sign-in skipped — progress stays local ('+(e&&e.message?e.message:'declined')+')');
-      loadState();
-      return false;
-    }
+      const accts=await p.request({method:'eth_requestAccounts'});
+      const w=accts[0]; activeProvider=p; closeModal();
+      await ensureRobinhood(p); await refreshNet(w);
+      const {nonce}=await apiGet('/api/link/nonce');
+      const message=`Link this wallet to my XBIT account.\n\nWallet: ${w}\nNonce: ${nonce}`;
+      const signature=await p.request({method:'personal_sign',params:[message,w]});
+      const res=await apiPost('/api/link',{address:w,message,signature});
+      linkedWallet=res.wallet; toast('Wallet linked ✓'); await refreshMe();
+      p.on&&p.on('chainChanged',()=>refreshNet(linkedWallet));
+    }catch(e){ toast('Link failed: '+(e&&e.message?e.message:'declined')); }
   }
 
   const EPOCHS=5, EPOCH_MS=12*3600*1000, START=Date.now();
@@ -638,7 +645,7 @@
   const FARM_POOL=200000000, TICKET_PRICE=18888, MAX_TICKETS=100, XBIT_PER_ETH=5000000;
   let bal=0, farmedToday=0; const perEpoch=[0,0,0,0,0]; let lastClaimAt=0;
   let referredBy=null, referrals=0;   // referredBy: whose link brought me; referrals: friends I brought (from backend)
-  function boostMult(){ return 1 + 0.10*Math.min(5,referrals) + ((referredBy && referredBy.toLowerCase()!==(account||'').toLowerCase())?0.10:0); }
+  function boostMult(){ return 1 + 0.10*Math.min(5,referrals) + ((referredBy && referredBy!==xid)?0.10:0); }
   function boostPct(){ return Math.round((boostMult()-1)*100); }
 
   const WALLETS=[{id:'walletconnect',name:'WalletConnect'},{id:'rabby',name:'Rabby Wallet'},{id:'phantom',name:'Phantom'},
@@ -657,7 +664,7 @@
       default: return S('#333','');
     }
   }
-  let account=null, activeProvider=null, xHandle=null;
+  let activeProvider=null;
   const RH={id:4663,hex:'0x'+(4663).toString(16),name:'Robinhood Chain',
     rpc:['https://rpc.mainnet.chain.robinhood.com'],cur:{name:'Ether',symbol:'ETH',decimals:18},
     exp:['https://robinhoodchain.blockscout.com']};
@@ -673,15 +680,15 @@
       toast('Switch to Robinhood Chain to continue'); return false;
     }
   }
-  async function refreshNet(){
+  async function refreshNet(w){
     const chip=document.getElementById('netChip');
-    if(!account||!activeProvider){chip.hidden=true;return;}
+    if(!activeProvider||!(w||linkedWallet)){chip.hidden=true;return;}
     let cid=null; try{cid=await activeProvider.request({method:'eth_chainId'});}catch(e){}
     chip.hidden=false;
     if(cid && parseInt(cid,16)===RH.id){chip.className='netchip ok';chip.textContent='◉ Robinhood Chain';}
     else{chip.className='netchip bad';chip.textContent='⚠ Wrong network · switch';}
   }
-  async function switchNet(){ if(activeProvider){await ensureRobinhood(activeProvider);await refreshNet();} }
+  async function switchNet(){ if(activeProvider){await ensureRobinhood(activeProvider);await refreshNet(linkedWallet);} }
   function nameOf(id){return (WALLETS.find(w=>w.id===id)||{}).name||id;}
   function injectedList(){const e=window.ethereum;if(e&&e.providers&&e.providers.length)return e.providers;return e?[e]:[];}
   function findProvider(id){
@@ -709,36 +716,14 @@
       else if(id==='robinhood')tag='<span class="wtag phone">PHONE</span>';
       else if(findProvider(id))tag=(last===id)?'<span class="wtag recent">RECENT</span>':'<span class="wtag installed">INSTALLED</span>';
       r.innerHTML=icon(id)+`<span class="nm">${w.name}</span>${tag}<span class="chev">›</span>`;
-      r.onclick=()=>connect(id);box.appendChild(r);
+      r.onclick=()=>linkWallet(id);box.appendChild(r);
     });
   }
   function openModal(){renderWallets();document.getElementById('overlay').classList.add('on');}
   function closeModal(){document.getElementById('overlay').classList.remove('on');}
   function short(a){return a.slice(0,6)+'…'+a.slice(-4);}
-  async function connect(id){
-    if(id==='walletconnect'){toast('WalletConnect (QR) coming in the real build');return;}
-    if(id==='robinhood'){toast('Robinhood Wallet is mobile — QR in the real build');return;}
-    const p=findProvider(id);
-    if(!p){toast(nameOf(id)+' not found — install the extension');return;}
-    try{
-      const accts=await p.request({method:'eth_requestAccounts'});
-      account=accts[0];activeProvider=p; try{localStorage.setItem('xbit:lastWallet',id);}catch(e){}
-      const btn=document.getElementById('connectBtn');btn.textContent=short(account);btn.classList.add('on');
-      closeModal();toast('Connected: '+nameOf(id));
-      document.querySelector('#log .line').innerHTML='<b class="lime">wallet connected</b> · '+short(account);
-      loadState();
-      await ensureRobinhood(p); await refreshNet();
-      await serverLogin(p);
-      p.on&&p.on('accountsChanged',(a)=>{if(!a.length){disconnect();}else{account=a[0];btn.textContent=short(account);token=null;serverMode=false;serverLogin(p);refreshNet();}});
-      p.on&&p.on('chainChanged',()=>refreshNet());
-    }catch(e){toast('Declined in wallet');}
-  }
-  function disconnect(){account=null;activeProvider=null;xHandle=null;token=null;serverMode=false;tier=null;isAdmin=false;
-    try{localStorage.removeItem('xbit:token');localStorage.removeItem('xbit:addr');}catch(e){}
-    const btn=document.getElementById('connectBtn');btn.textContent='CONNECT';btn.classList.remove('on');
-    document.getElementById('netChip').hidden=true;
-    toast('Wallet disconnected');loadState();refreshStats();}
-  function onConnectClick(){ if(account){disconnect();} else {openModal();} }
+  // top-right button: connect X (redirect) when logged out, disconnect when logged in
+  function onConnectClick(){ if(serverMode){ logoutLocal(); document.getElementById('netChip').hidden=true; loadState(); refreshStats(); toast('Disconnected'); } else { xLogin(); } }
 
   const TIERS=[{p:.60,name:'COMMON',c:'var(--muted)',lo:10,hi:80,cls:''},{p:.30,name:'RARE',c:'var(--lime)',lo:80,hi:300,cls:'rare'},
     {p:.09,name:'EPIC',c:'var(--epic)',lo:300,hi:900,cls:'epic'},{p:.01,name:'JACKPOT',c:'var(--gold)',lo:1500,hi:3000,cls:'jackpot'}];
@@ -880,35 +865,38 @@
       d.innerHTML=`<div class="n">E${i+1}</div><div class="s">${state}</div><div class="s" style="color:var(--lime)">${fmt(perEpoch[i])}</div>`;box.appendChild(d);}
     const board=document.getElementById('board');
     if(!BOARD.length){board.innerHTML='<div class="empty">Nobody has farmed 1000 $XBIT yet.<br>Be the first to make the leaderboard.</div>';}
-    else{board.innerHTML=BOARD.map((e,i)=>{const you=account&&e.address&&e.address.toLowerCase()===account.toLowerCase();
-      return `<div class="r ${you?'you':''}"><span><span class="rk">#${i+1}</span>${you?'► you · '+short(e.address):short(e.address)}</span><span>${fmt(e.total)} $XBIT</span></div>`;}).join('');}
+    else{board.innerHTML=BOARD.map((e,i)=>{const you=xid&&e.id===xid; const nm=e.handle?('@'+e.handle):(e.id||'').replace(/^x:/,'x·');
+      return `<div class="r ${you?'you':''}"><span><span class="rk">#${i+1}</span>${you?'► you · '+nm:nm}</span><span>${fmt(e.total)} $XBIT</span></div>`;}).join('');}
   }
-  function connectX(){ if(!account){toast('Connect a wallet first');return;} toast('Link X — OAuth in the real build'); }
   function renderProfile(){
     const body=document.getElementById('profileBody');
-    if(!account){body.innerHTML=`<div class="frame pcard"><div class="empty">Wallet not connected.<br><br><button class="connect" onclick="openModal()">CONNECT WALLET</button></div></div>`;return;}
+    if(!serverMode){body.innerHTML=`<div class="frame pcard"><div class="empty">Connect your X account to see your profile and farm real $XBIT.<br><br><button class="connect" onclick="xLogin()">✕ CONNECT X</button></div></div>`;return;}
     const ep=epochInfo();
     const rows=perEpoch.map((a,i)=>{const badge=i<ep.idx?'closed':(i===ep.idx&&!ep.ended?'now':'soon');
       const b=badge==='now'?'<span class="badge now">NOW</span>':(badge==='closed'?'<span class="badge">closed</span>':'<span class="badge">soon</span>');
       return `<div class="row"><span>Epoch ${i+1}${b}</span><span class="amt">${fmt(a)} $XBIT</span></div>`;}).join('');
-    let rank='—'; if(account){const bi=BOARD.findIndex(e=>e.address&&e.address.toLowerCase()===account.toLowerCase()); rank=bi>=0?('#'+(bi+1)):'—';}
+    let rank='—'; if(xid){const bi=BOARD.findIndex(e=>e.id===xid); rank=bi>=0?('#'+(bi+1)):'—';}
+    const walletBlock = linkedWallet
+      ? `<div class="addr">${linkedWallet}</div><button class="btn-x" onclick="unlinkWallet()">UNLINK</button>`
+      : `<button class="btn-x" onclick="openModal()">🔗 LINK WALLET</button><div class="eyebrow" style="margin-top:6px;color:var(--muted)">needed for the raffle & to receive $XBIT at TGE</div>`;
     body.innerHTML=`<div class="prof-grid">
       <div class="frame pcard">
-        <div class="eyebrow">wallet</div><div class="addr">${account}</div>
-        <div class="eyebrow" style="margin-top:16px">social</div>
-        ${xHandle?`<div class="addr">${xHandle}</div>`:`<button class="btn-x" onclick="connectX()">✕ CONNECT X</button>`}
+        <div class="eyebrow">X account</div><div class="addr lime">${handle?('@'+handle):xid}</div>
+        <div class="eyebrow" style="margin-top:16px">wallet for payout</div>
+        ${walletBlock}
         <div class="eyebrow" style="margin-top:18px">total farmed</div>
         <div class="tnum lime" style="font-family:'Jersey 10',monospace;font-size:44px">${fmt(bal)} <span style="font-size:20px;color:var(--muted)">$XBIT</span></div>
         <div class="eyebrow" style="margin-top:12px">leaderboard rank: <span class="lime">${rank}</span> ${bal<1000?'· '+fmt(1000-bal)+' to go':''}</div>
         <div class="eyebrow" style="margin-top:10px">raffle tickets: <span class="lime">${tickets}</span>/100</div>
         <div class="eyebrow" style="margin-top:16px">your referral link</div>
-        <div class="addr" style="font-size:16px">${location.origin+location.pathname}?ref=${short(account)}</div>
+        <div class="addr" style="font-size:16px">${location.origin+location.pathname}?ref=${xid}</div>
         <button class="btn-x" onclick="copyRef()">COPY LINK</button>
         <div class="eyebrow" style="margin-top:10px">friends referred: <span class="lime">${referrals}</span> · farm boost: <span class="lime">+${boostPct()}%</span></div>
       </div>
       <div class="frame pcard epTable"><div class="eyebrow" style="margin-bottom:6px">per epoch</div>${rows}</div>
     </div>`;
   }
+  async function unlinkWallet(){ try{ await apiPost('/api/unlink',{}); linkedWallet=null; document.getElementById('netChip').hidden=true; toast('Wallet unlinked'); await refreshMe(); }catch(e){ toast('Failed'); } }
 
   let tickets=0;
   function renderRaffle(){
@@ -925,8 +913,8 @@
     else{list.innerHTML=`<div class="p"><span>${players} player${players>1?'s':''} joined</span><span>${fmt(totalT)} tix</span></div>`;}
   }
   async function buyTicket(){
-    if(!account){toast('Connect a wallet first');openModal();return;}
-    if(!serverMode){toast('Sign in with your wallet to buy tickets');return;}
+    if(!serverMode){toast('Connect X first');xLogin();return;}
+    if(!linkedWallet){toast('Link a wallet in your profile to buy tickets');go('profile');return;}
     if(tickets>=MAX_TICKETS){toast('Buy limit is 100 tickets per account');return;}
     if(bal<TICKET_PRICE){toast('You need 18,888 $XBIT for a ticket — farm first');go('farm');return;}
     try{
@@ -938,7 +926,7 @@
   }
 
   // ---- progress persistence (localStorage) + guest mode ----
-  function identityKey(){ return 'xbit:state:'+(serverMode?account:'guest'); }
+  function identityKey(){ return 'xbit:state:'+(serverMode?xid:'guest'); }
   function saveState(){ if(serverMode)return; try{ localStorage.setItem(identityKey(), JSON.stringify({bal,farmedToday,tickets,perEpoch})); }catch(e){} }
   function loadState(){
     if(serverMode){ refreshMe(); return; }
@@ -949,7 +937,7 @@
     updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome();
   }
   function updateGuestUI(){ const b=document.getElementById('guestBanner'); if(b) b.hidden=!!serverMode; }
-  function copyRef(){ if(!account){toast('Connect a wallet to get your link');return;} const l=location.origin+location.pathname+'?ref='+account; try{navigator.clipboard.writeText(l);toast('Referral link copied');}catch(e){toast(l);} }
+  function copyRef(){ if(!xid){toast('Connect X to get your link');return;} const l=location.origin+location.pathname+'?ref='+xid; try{navigator.clipboard.writeText(l);toast('Referral link copied');}catch(e){toast(l);} }
 
   // ---- FARM REPORT (time until all farming ends) ----
   function openReport(){ renderReport(); document.getElementById('reportOverlay').classList.add('on'); }
@@ -1017,19 +1005,21 @@
     const st=document.createElement('style');st.textContent=`*{cursor:${cur} !important}`;document.head.appendChild(st);
   })();
 
+  // referral capture (?ref=<X account id>) — applied at X login
   try{const rq=new URLSearchParams(location.search).get('ref'); if(rq && !localStorage.getItem('xbit:ref'))localStorage.setItem('xbit:ref',rq);}catch(e){}
   try{referredBy=localStorage.getItem('xbit:ref')||null;}catch(e){}
 
-  // restore a signed-in session (JWT valid 7d) so farming survives a reload without re-signing
-  (function restoreSession(){
-    try{ const t=localStorage.getItem('xbit:token'), a=localStorage.getItem('xbit:addr');
-      if(t&&a){ token=t; account=a; serverMode=true;
-        const btn=document.getElementById('connectBtn'); btn.textContent=short(account); btn.classList.add('on');
-        // try a silent provider reconnect for the network chip (optional)
-        try{ const e=window.ethereum; if(e){ e.request({method:'eth_accounts'}).then(acc=>{
-          if(acc&&acc[0]&&acc[0].toLowerCase()===account.toLowerCase()){ activeProvider=e; refreshNet();
-            e.on&&e.on('chainChanged',()=>refreshNet()); } }).catch(()=>{}); } }catch(_){}
-      }
+  // handle the X OAuth return (?xtoken success / ?xerr error) and restore a saved session
+  (function handleAuthReturn(){
+    try{
+      const q=new URLSearchParams(location.search);
+      const xt=q.get('xtoken'), xe=q.get('xerr');
+      if(xt){ token=xt; serverMode=true; try{localStorage.setItem('xbit:token',xt);localStorage.removeItem('xbit:ref');}catch(_){}
+        setTimeout(()=>toast('Connected with X ✓'),300); }
+      if(xt||xe){ history.replaceState(null,'',location.origin+location.pathname); }
+      if(xe){ setTimeout(()=>toast('X sign-in failed ('+xe+') — try again'),300); }
+      if(!token){ const t=localStorage.getItem('xbit:token'); if(t){ token=t; serverMode=true; } }
+      updateConnectBtn();
     }catch(e){}
   })();
 
