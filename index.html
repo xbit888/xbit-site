@@ -561,12 +561,70 @@
   function go(t){
     document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===t));
     document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-    if(t==='stats')renderStats(); if(t==='profile')renderProfile(); if(t==='raffle')renderRaffle(); if(t==='home')renderHome(); if(t==='token')renderToken();
+    if(t==='stats'){renderStats();refreshStats();refreshBoard();}
+    if(t==='profile'){renderProfile();refreshMe();}
+    if(t==='raffle'){renderRaffle();refreshStats();}
+    if(t==='home'){renderHome();refreshStats();}
+    if(t==='token')renderToken();
     window.scrollTo({top:0});
   }
   function fmt(n){return Math.round(n).toLocaleString('en-US');}
   let toastTimer;
   function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('on'),2600);}
+
+  // ---- backend wiring ----
+  const API = 'https://xbit-backend-production.up.railway.app';
+  let token=null, tier=null, isAdmin=false, serverMode=false;
+  const CLIENT_MULT={blocked:0,restricted:0.4,trusted:1,verified:1.2};
+  function clientMult(){ return serverMode ? (CLIENT_MULT[tier] ?? 1) : 1; }
+  let STATS={left:200000000,used:0,today:0,active:0,farmers:0,raffleTickets:0,rafflePlayers:0,epoch:1,epochs:5};
+  let BOARD=[];
+  async function apiGet(path){
+    const r=await fetch(API+path,{headers: token?{authorization:'Bearer '+token}:{}});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
+    return r.json();
+  }
+  async function apiPost(path,body){
+    const r=await fetch(API+path,{method:'POST',headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})},body:JSON.stringify(body||{})});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
+    return r.json();
+  }
+  async function refreshStats(){ try{ STATS=await apiGet('/api/stats'); renderStats(); renderHome(); }catch(e){} }
+  async function refreshBoard(){ try{ BOARD=await apiGet('/api/leaderboard'); renderStats(); }catch(e){} }
+  async function refreshMe(){
+    if(!serverMode||!token) return;
+    try{
+      const me=await apiGet('/api/me');
+      bal=+me.balance||0; tickets=+me.tickets||0;
+      for(let i=0;i<perEpoch.length;i++) perEpoch[i]=(me.perEpoch&&+me.perEpoch[i])||0;
+      referrals=+me.referrals||0; tier=me.tier||tier; if(me.x)xHandle=me.x;
+      document.getElementById('bal').textContent=fmt(bal);
+      updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome(); hud();
+    }catch(e){
+      if(/token|401/i.test(e.message||'')){ token=null; serverMode=false;
+        try{localStorage.removeItem('xbit:token');localStorage.removeItem('xbit:addr');}catch(_){}
+        loadState(); }
+    }
+  }
+  async function serverLogin(p){
+    try{
+      const {nonce}=await apiGet('/api/nonce?address='+account);
+      const message=`Sign in to XBIT Farm.\n\nAddress: ${account}\nNonce: ${nonce}`;
+      const signature=await p.request({method:'personal_sign',params:[message,account]});
+      const res=await apiPost('/api/login',{address:account,message,signature,ref:referredBy||undefined});
+      token=res.token; tier=res.tier; isAdmin=!!res.isAdmin; serverMode=true;
+      try{localStorage.setItem('xbit:token',token);localStorage.setItem('xbit:addr',account);}catch(e){}
+      await refreshMe();
+      if(tier==='blocked') toast('Wallet gate: add some on-chain history to earn real $XBIT');
+      else toast('Signed in'+(tier?(' · '+tier):''));
+      return true;
+    }catch(e){
+      serverMode=false; token=null;
+      toast('Sign-in skipped — progress stays local ('+(e&&e.message?e.message:'declined')+')');
+      loadState();
+      return false;
+    }
+  }
 
   const EPOCHS=5, EPOCH_MS=12*3600*1000, START=Date.now();
   function epochInfo(){
@@ -582,9 +640,6 @@
   let referredBy=null, referrals=0;   // referredBy: whose link brought me; referrals: friends I brought (from backend)
   function boostMult(){ return 1 + 0.10*Math.min(5,referrals) + ((referredBy && referredBy.toLowerCase()!==(account||'').toLowerCase())?0.10:0); }
   function boostPct(){ return Math.round((boostMult()-1)*100); }
-  function activeNow(){ return (account && (Date.now()-lastClaimAt)<120000) ? 1 : 0; }
-  function totalFarmers(){ return (account && bal>0) ? 1 : 0; }
-  function leaderboard(){ return (bal>=1000 && account) ? [{addr:account,amt:bal,you:true}] : []; }
 
   const WALLETS=[{id:'walletconnect',name:'WalletConnect'},{id:'rabby',name:'Rabby Wallet'},{id:'phantom',name:'Phantom'},
     {id:'robinhood',name:'Robinhood Wallet'},{id:'metamask',name:'MetaMask'},{id:'coinbase',name:'Coinbase Wallet'},{id:'okx',name:'OKX Wallet'}];
@@ -673,14 +728,16 @@
       document.querySelector('#log .line').innerHTML='<b class="lime">wallet connected</b> · '+short(account);
       loadState();
       await ensureRobinhood(p); await refreshNet();
-      p.on&&p.on('accountsChanged',(a)=>{if(!a.length){disconnect();}else{account=a[0];btn.textContent=short(account);loadState();refreshNet();}});
+      await serverLogin(p);
+      p.on&&p.on('accountsChanged',(a)=>{if(!a.length){disconnect();}else{account=a[0];btn.textContent=short(account);token=null;serverMode=false;serverLogin(p);refreshNet();}});
       p.on&&p.on('chainChanged',()=>refreshNet());
     }catch(e){toast('Declined in wallet');}
   }
-  function disconnect(){account=null;activeProvider=null;xHandle=null;
+  function disconnect(){account=null;activeProvider=null;xHandle=null;token=null;serverMode=false;tier=null;isAdmin=false;
+    try{localStorage.removeItem('xbit:token');localStorage.removeItem('xbit:addr');}catch(e){}
     const btn=document.getElementById('connectBtn');btn.textContent='CONNECT';btn.classList.remove('on');
     document.getElementById('netChip').hidden=true;
-    toast('Wallet disconnected');loadState();}
+    toast('Wallet disconnected');loadState();refreshStats();}
   function onConnectClick(){ if(account){disconnect();} else {openModal();} }
 
   const TIERS=[{p:.60,name:'COMMON',c:'var(--muted)',lo:10,hi:80,cls:''},{p:.30,name:'RARE',c:'var(--lime)',lo:80,hi:300,cls:'rare'},
@@ -691,7 +748,8 @@
 
   // 15s cycle: one robot at a time — click it -> +$XBIT -> it reappears; red robots trap you
   const CYCLE_SEC=15;
-  let farmActive=false, sesCaught=0, sesEarn=0, robot=null, cyLeft=0, cyTimer=null;
+  let farmActive=false, sesCaught=0, sesEarn=0, sesRaw=0, robot=null, cyLeft=0, cyTimer=null;
+  function liveBal(){ return Math.max(0, bal + sesEarn); }
   const field=document.getElementById('field'), startBtn=document.getElementById('startBtn'), fieldMsg=document.getElementById('fieldMsg');
   function hud(){document.getElementById('cyTime').textContent=farmActive?cyLeft+'s':'—';document.getElementById('cyCaught').textContent=sesCaught;document.getElementById('cyEarn').textContent=fmt(sesEarn);
     const bc=document.getElementById('cyBoost'); if(bc)bc.innerHTML=boostPct()>0?'<b class="lime">⚡ +'+boostPct()+'%</b>':'';}
@@ -719,25 +777,27 @@
       if(el.dataset.caught)return; el.dataset.caught='1'; clearTimeout(el._to);
       const cx=x+W/2, cy=y+H/2;
       if(bad){
+        // red robot burns part of THIS cycle's harvest — banked tokens are never touched
         const pct=5+Math.floor(Math.random()*16);              // 5–20%
-        const loss=Math.round(bal*pct/100);
-        bal=Math.max(0,bal-loss); sesEarn=Math.max(0,sesEarn-loss);
-        document.getElementById('bal').textContent=fmt(bal);
+        const lossRaw=Math.round(sesRaw*pct/100);
+        const lossShown=Math.round(sesEarn*pct/100);
+        sesRaw=Math.max(0,sesRaw-lossRaw); sesEarn=Math.max(0,sesEarn-lossShown);
+        document.getElementById('bal').textContent=fmt(liveBal());
         catchFx(cx,cy,'var(--alarm)');
-        floatText(x,y,'-'+fmt(loss),'var(--alarm)');
-        logLine(`<b class="alarm">RED XBIT</b> · -${fmt(loss)} $XBIT (-${pct}%)`);
+        floatText(x,y,lossShown>0?'-'+fmt(lossShown):'safe','var(--alarm)');
+        logLine(`<b class="alarm">RED XBIT</b> · ${lossShown>0?('-'+fmt(lossShown)+' this cycle (-'+pct+'%)'):'nothing to burn yet'}`);
       }else{
-        const amt=Math.round((t.lo+Math.floor(Math.random()*(t.hi-t.lo+1)))*boostMult());
-        const ep2=epochInfo();
-        bal+=amt;sesEarn+=amt;sesCaught++;farmedToday+=amt;perEpoch[ep2.idx]+=amt;lastClaimAt=Date.now();
-        document.getElementById('bal').textContent=fmt(bal);
+        const base=t.lo+Math.floor(Math.random()*(t.hi-t.lo+1));
+        const shown=Math.round(base*clientMult()*boostMult());
+        sesRaw+=base; sesEarn+=shown; sesCaught++; lastClaimAt=Date.now();
+        document.getElementById('bal').textContent=fmt(liveBal());
         catchFx(cx,cy,t.c);
-        floatText(x,y,'+'+fmt(amt),t.c);
-        logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(amt)} $XBIT`);
+        floatText(x,y,'+'+fmt(shown),t.c);
+        logLine(`<b style="color:${t.c}">${t.name}</b> · +${fmt(shown)} $XBIT`);
       }
       el.classList.add('pop'); setTimeout(()=>el.remove(),280);
       robot=null;
-      hud();renderStats();renderProfile();renderHome();
+      hud();
       spawnRobot();
     };
     field.appendChild(el);robot=el;
@@ -747,31 +807,46 @@
   function startFarm(){
     const ep=epochInfo(); if(ep.ended){toast('Farming finished — all 5 epochs done');return;}
     if(farmActive)return;
-    farmActive=true;sesCaught=0;sesEarn=0;cyLeft=CYCLE_SEC;
+    farmActive=true;sesCaught=0;sesEarn=0;sesRaw=0;cyLeft=CYCLE_SEC;
     fieldMsg.hidden=true;field.classList.add('playing');
     startBtn.disabled=true;startBtn.textContent='FARMING…';hud();
     spawnRobot();
     cyTimer=setInterval(()=>{cyLeft--;hud();if(cyLeft<=0)endCycle();},1000);
   }
-  function endCycle(){
+  async function endCycle(){
     farmActive=false; clearInterval(cyTimer);
     if(robot){clearTimeout(robot._to);robot.remove();robot=null;}
     field.classList.remove('playing');fieldMsg.hidden=false;
+    // bank this cycle's harvest
+    if(serverMode){
+      if(sesRaw>0){
+        startBtn.textContent='BANKING…';
+        try{ const r=await apiPost('/api/farm',{amount:sesRaw}); bal=+r.balance;
+          logLine(`<b class="lime">BANKED</b> · +${fmt(r.added)} $XBIT`); }
+        catch(e){ toast('Farm not saved: '+(e.message||'')); logLine(`<b class="alarm">not saved</b> · ${e.message||''}`); }
+      }
+      await refreshMe(); await refreshStats();
+    }else{
+      const ep2=epochInfo(); const gained=Math.max(0,Math.round(sesRaw*boostMult()));
+      bal=Math.max(0,bal+gained); farmedToday+=gained; perEpoch[ep2.idx]+=gained;
+      document.getElementById('bal').textContent=fmt(bal);
+      saveState(); renderStats();renderProfile();renderHome();
+    }
     const ep=epochInfo();
     if(ep.ended){fieldMsg.innerHTML='Farming finished — all 5 epochs done';startBtn.disabled=true;startBtn.textContent='FARMING ENDED';}
-    else{fieldMsg.innerHTML=`Cycle done · caught ${sesCaught} · <span class="lime">+${fmt(sesEarn)} $XBIT</span>`;startBtn.disabled=false;startBtn.textContent='NEXT CYCLE ▸';}
-    hud();renderStats();renderProfile();renderHome();
+    else{fieldMsg.innerHTML=`Cycle done · caught ${sesCaught} · <span class="lime">+${fmt(Math.max(0,sesEarn))} $XBIT</span>`;startBtn.disabled=false;startBtn.textContent='NEXT CYCLE ▸';}
+    hud();
   }
 
   function renderHome(){
-    const ft=bal,ep=epochInfo();
-    document.getElementById('homeLeft').textContent=fmt(FARM_POOL-ft);
-    document.getElementById('homeActive').textContent=activeNow();
-    document.getElementById('homeEpoch').textContent=ep.num+'/5';
-    document.getElementById('homePool').style.width=Math.min(100,100*ft/FARM_POOL)+'%';
-    document.getElementById('cardEpoch').textContent='EPOCH '+ep.num+'/5';
+    const ep=epochInfo(), used=STATS.used||0, left=(STATS.left!=null?STATS.left:FARM_POOL-used), epn=STATS.epoch||ep.num;
+    document.getElementById('homeLeft').textContent=fmt(left);
+    document.getElementById('homeActive').textContent=STATS.active||0;
+    document.getElementById('homeEpoch').textContent=epn+'/5';
+    document.getElementById('homePool').style.width=Math.min(100,100*used/FARM_POOL)+'%';
+    document.getElementById('cardEpoch').textContent='EPOCH '+epn+'/5';
     document.getElementById('cardCd').textContent=ep.totalLeft>0?hms(ep.totalLeft):'TGE';
-    saveState();
+    if(!serverMode)saveState();
   }
   function calcSwap(){
     const pay=parseFloat(document.getElementById('payIn').value)||0;
@@ -791,21 +866,22 @@
     calcSwap();
   }
   function renderStats(){
-    const ft=bal;
-    document.getElementById('s-left').textContent=fmt(FARM_POOL-ft);
-    const pl=document.getElementById('poolLeft'); if(pl)pl.textContent=fmt(FARM_POOL-ft);
-    document.getElementById('s-today').textContent=fmt(farmedToday);
-    document.getElementById('s-active').textContent=activeNow();
-    document.getElementById('s-farmers').textContent=totalFarmers();
-    document.getElementById('poolFill').style.width=Math.min(100,100*ft/FARM_POOL)+'%';
+    const used=STATS.used||0, left=(STATS.left!=null?STATS.left:FARM_POOL-used);
+    document.getElementById('s-left').textContent=fmt(left);
+    const pl=document.getElementById('poolLeft'); if(pl)pl.textContent=fmt(left);
+    document.getElementById('s-today').textContent=fmt(STATS.today||0);
+    document.getElementById('s-active').textContent=STATS.active||0;
+    document.getElementById('s-farmers').textContent=STATS.farmers||0;
+    document.getElementById('poolFill').style.width=Math.min(100,100*used/FARM_POOL)+'%';
     const ep=epochInfo();const box=document.getElementById('epochs');box.innerHTML='';
     for(let i=0;i<EPOCHS;i++){const d=document.createElement('div');
       const cls=i<ep.idx?'past':(i===ep.idx&&!ep.ended?'now':'');d.className='ep '+cls;
       const state=i<ep.idx?'closed':(i===ep.idx&&!ep.ended?'<span id="epNow">'+hms(ep.leftMs)+'</span>':'soon');
       d.innerHTML=`<div class="n">E${i+1}</div><div class="s">${state}</div><div class="s" style="color:var(--lime)">${fmt(perEpoch[i])}</div>`;box.appendChild(d);}
-    const lb=leaderboard();const board=document.getElementById('board');
-    if(!lb.length){board.innerHTML='<div class="empty">Nobody has farmed 1000 $XBIT yet.<br>Be the first to make the leaderboard.</div>';}
-    else{board.innerHTML=lb.map((e,i)=>`<div class="r ${e.you?'you':''}"><span><span class="rk">#${i+1}</span>${e.you?'► you · '+short(e.addr):short(e.addr)}</span><span>${fmt(e.amt)} $XBIT</span></div>`).join('');}
+    const board=document.getElementById('board');
+    if(!BOARD.length){board.innerHTML='<div class="empty">Nobody has farmed 1000 $XBIT yet.<br>Be the first to make the leaderboard.</div>';}
+    else{board.innerHTML=BOARD.map((e,i)=>{const you=account&&e.address&&e.address.toLowerCase()===account.toLowerCase();
+      return `<div class="r ${you?'you':''}"><span><span class="rk">#${i+1}</span>${you?'► you · '+short(e.address):short(e.address)}</span><span>${fmt(e.total)} $XBIT</span></div>`;}).join('');}
   }
   function connectX(){ if(!account){toast('Connect a wallet first');return;} toast('Link X — OAuth in the real build'); }
   function renderProfile(){
@@ -815,7 +891,7 @@
     const rows=perEpoch.map((a,i)=>{const badge=i<ep.idx?'closed':(i===ep.idx&&!ep.ended?'now':'soon');
       const b=badge==='now'?'<span class="badge now">NOW</span>':(badge==='closed'?'<span class="badge">closed</span>':'<span class="badge">soon</span>');
       return `<div class="row"><span>Epoch ${i+1}${b}</span><span class="amt">${fmt(a)} $XBIT</span></div>`;}).join('');
-    const rank=(bal>=1000)?'#1':'—';
+    let rank='—'; if(account){const bi=BOARD.findIndex(e=>e.address&&e.address.toLowerCase()===account.toLowerCase()); rank=bi>=0?('#'+(bi+1)):'—';}
     body.innerHTML=`<div class="prof-grid">
       <div class="frame pcard">
         <div class="eyebrow">wallet</div><div class="addr">${account}</div>
@@ -834,45 +910,52 @@
     </div>`;
   }
 
-  let tickets=0, players=[];
-  function raffleAll(){const all=[...players];if(tickets>0)all.push({addr:account,t:tickets,you:true});return all;}
+  let tickets=0;
   function renderRaffle(){
-    const all=raffleAll();const totalT=all.reduce((s,p)=>s+p.t,0);
+    const totalT=STATS.raffleTickets||0, players=STATS.rafflePlayers||0;
     document.getElementById('myTickets').textContent=tickets;
     document.getElementById('chance').textContent=(totalT?Math.round(100*tickets/totalT):0)+'%';
     document.getElementById('totTickets').textContent=fmt(totalT);
-    document.getElementById('pcount').textContent=all.length;
+    document.getElementById('pcount').textContent=players;
     document.getElementById('collected').textContent=fmt(totalT*TICKET_PRICE);
     const list=document.getElementById('playerList');
-    if(!all.length){list.innerHTML='<div class="empty">No players yet. Buy the first ticket.</div>';}
-    else{list.innerHTML=all.sort((a,b)=>b.t-a.t).map(p=>`<div class="p ${p.you?'you':''}"><span>${p.you?'► you':short(p.addr)}</span><span>${p.t} tix</span></div>`).join('');}
+    if(!totalT){list.innerHTML='<div class="empty">No players yet. Buy the first ticket.</div>';}
+    else if(tickets>0){list.innerHTML=`<div class="p you"><span>► you</span><span>${tickets} tix</span></div>`+
+      (players>1?`<div class="p"><span>+${players-1} other player${players-1>1?'s':''}</span><span>${fmt(totalT-tickets)} tix</span></div>`:'');}
+    else{list.innerHTML=`<div class="p"><span>${players} player${players>1?'s':''} joined</span><span>${fmt(totalT)} tix</span></div>`;}
   }
-  function buyTicket(){
+  async function buyTicket(){
     if(!account){toast('Connect a wallet first');openModal();return;}
+    if(!serverMode){toast('Sign in with your wallet to buy tickets');return;}
     if(tickets>=MAX_TICKETS){toast('Buy limit is 100 tickets per account');return;}
     if(bal<TICKET_PRICE){toast('You need 18,888 $XBIT for a ticket — farm first');go('farm');return;}
-    bal-=TICKET_PRICE;tickets++;document.getElementById('bal').textContent=fmt(bal);
-    renderRaffle();renderStats();renderProfile();renderHome();toast('Ticket bought · '+tickets+' total');
+    try{
+      const r=await apiPost('/api/raffle/buy',{});
+      tickets=r.tickets; bal=+r.balance; document.getElementById('bal').textContent=fmt(bal);
+      renderProfile();renderHome(); await refreshStats(); renderRaffle();
+      toast('Ticket bought · '+tickets+' total');
+    }catch(e){ toast('Buy failed: '+(e.message||'')); }
   }
 
   // ---- progress persistence (localStorage) + guest mode ----
-  function identityKey(){ return 'xbit:state:'+(account||'guest'); }
-  function saveState(){ try{ localStorage.setItem(identityKey(), JSON.stringify({bal,farmedToday,tickets,perEpoch})); }catch(e){} }
+  function identityKey(){ return 'xbit:state:'+(serverMode?account:'guest'); }
+  function saveState(){ if(serverMode)return; try{ localStorage.setItem(identityKey(), JSON.stringify({bal,farmedToday,tickets,perEpoch})); }catch(e){} }
   function loadState(){
+    if(serverMode){ refreshMe(); return; }
     let s=null; try{ s=JSON.parse(localStorage.getItem(identityKey())||'null'); }catch(e){}
     if(s){ bal=+s.bal||0; farmedToday=+s.farmedToday||0; tickets=+s.tickets||0; for(let i=0;i<perEpoch.length;i++)perEpoch[i]=(s.perEpoch&&+s.perEpoch[i])||0; }
     else { bal=0; farmedToday=0; tickets=0; perEpoch.fill(0); }
     document.getElementById('bal').textContent=fmt(bal);
     updateGuestUI(); renderStats(); renderProfile(); renderRaffle(); renderHome();
   }
-  function updateGuestUI(){ const b=document.getElementById('guestBanner'); if(b) b.hidden=!!account; }
+  function updateGuestUI(){ const b=document.getElementById('guestBanner'); if(b) b.hidden=!!serverMode; }
   function copyRef(){ if(!account){toast('Connect a wallet to get your link');return;} const l=location.origin+location.pathname+'?ref='+account; try{navigator.clipboard.writeText(l);toast('Referral link copied');}catch(e){toast(l);} }
 
   // ---- FARM REPORT (time until all farming ends) ----
   function openReport(){ renderReport(); document.getElementById('reportOverlay').classList.add('on'); }
   function closeReport(){ document.getElementById('reportOverlay').classList.remove('on'); }
   function renderReport(){
-    const ep=epochInfo(); const left=FARM_POOL-bal;
+    const ep=epochInfo(); const left=(STATS.left!=null?STATS.left:FARM_POOL-bal);
     document.getElementById('repTimer').textContent = ep.totalLeft>0 ? hms(ep.totalLeft) : 'FARMING ENDED';
     let eps='';
     for(let i=0;i<EPOCHS;i++){
@@ -936,5 +1019,28 @@
 
   try{const rq=new URLSearchParams(location.search).get('ref'); if(rq && !localStorage.getItem('xbit:ref'))localStorage.setItem('xbit:ref',rq);}catch(e){}
   try{referredBy=localStorage.getItem('xbit:ref')||null;}catch(e){}
-  initDocs();loadState();renderToken();
+
+  // restore a signed-in session (JWT valid 7d) so farming survives a reload without re-signing
+  (function restoreSession(){
+    try{ const t=localStorage.getItem('xbit:token'), a=localStorage.getItem('xbit:addr');
+      if(t&&a){ token=t; account=a; serverMode=true;
+        const btn=document.getElementById('connectBtn'); btn.textContent=short(account); btn.classList.add('on');
+        // try a silent provider reconnect for the network chip (optional)
+        try{ const e=window.ethereum; if(e){ e.request({method:'eth_accounts'}).then(acc=>{
+          if(acc&&acc[0]&&acc[0].toLowerCase()===account.toLowerCase()){ activeProvider=e; refreshNet();
+            e.on&&e.on('chainChanged',()=>refreshNet()); } }).catch(()=>{}); } }catch(_){}
+      }
+    }catch(e){}
+  })();
+
+  initDocs(); renderToken();
+  loadState();                 // guest → local; serverMode → refreshMe()
+  refreshStats(); refreshBoard();
+
+  // live polling
+  let pollN=0;
+  setInterval(()=>{ pollN++;
+    if(pollN%10===0){ refreshStats(); }
+    if(pollN%20===0){ refreshBoard(); if(serverMode)refreshMe(); }
+  },1000);
 </script>
